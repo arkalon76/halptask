@@ -156,26 +156,32 @@ func ParseMarkdown(content string) *Tree {
 		// Strip leading bullet markers ('-', '*', '•')
 		var item *Item
 		id := GenerateID()
+		var text string
 
 		if strings.HasPrefix(lineText, "- [ ] ") || strings.HasPrefix(lineText, "* [ ] ") {
-			text := strings.TrimPrefix(strings.TrimPrefix(lineText, "- [ ] "), "* [ ] ")
+			text = strings.TrimPrefix(strings.TrimPrefix(lineText, "- [ ] "), "* [ ] ")
 			item = NewTask(id, text, StatusTodo)
 		} else if strings.HasPrefix(lineText, "- [~] ") || strings.HasPrefix(lineText, "* [~] ") {
-			text := strings.TrimPrefix(strings.TrimPrefix(lineText, "- [~] "), "* [~] ")
+			text = strings.TrimPrefix(strings.TrimPrefix(lineText, "- [~] "), "* [~] ")
 			item = NewTask(id, text, StatusInProgress)
 		} else if strings.HasPrefix(lineText, "- [x] ") || strings.HasPrefix(lineText, "- [X] ") || strings.HasPrefix(lineText, "* [x] ") || strings.HasPrefix(lineText, "* [X] ") {
-			text := lineText[6:]
+			text = lineText[6:]
 			item = NewTask(id, text, StatusDone)
 		} else if strings.HasPrefix(lineText, "- ") || strings.HasPrefix(lineText, "* ") {
-			text := lineText[2:]
+			text = lineText[2:]
 			item = NewItem(id, text)
 		} else if strings.HasPrefix(lineText, "• ") {
-			text := lineText[3:]
+			text = lineText[3:]
 			item = NewItem(id, text)
 		} else {
-			item = NewItem(id, lineText)
+			text = lineText
+			item = NewItem(id, text)
 		}
 
+		// Extract #tags from text
+		cleanText, tags := parseTagsFromText(text)
+		item.Text = cleanText
+		item.Tags = tags
 		item.Folded = folded
 
 		if depth == 0 {
@@ -202,6 +208,32 @@ func ParseMarkdown(content string) *Tree {
 	return tree
 }
 
+func parseTagsFromText(text string) (string, []string) {
+	words := strings.Fields(text)
+	var cleanWords []string
+	var tags []string
+	tagSet := make(map[string]bool)
+
+	for _, word := range words {
+		if strings.HasPrefix(word, "#") && len(word) > 1 {
+			rawTag := word[1:]
+			// Tag must start with a letter to avoid parsing #123 issue numbers as tags
+			firstChar := rune(rawTag[0])
+			if (firstChar >= 'a' && firstChar <= 'z') || (firstChar >= 'A' && firstChar <= 'Z') {
+				tagLower := strings.ToLower(rawTag)
+				if !tagSet[tagLower] {
+					tagSet[tagLower] = true
+					tags = append(tags, tagLower)
+				}
+				continue
+			}
+		}
+		cleanWords = append(cleanWords, word)
+	}
+
+	return strings.Join(cleanWords, " "), tags
+}
+
 func SerializeMarkdown(tree *Tree) string {
 	var builder strings.Builder
 
@@ -223,6 +255,10 @@ func SerializeMarkdown(tree *Tree) string {
 				builder.WriteString("- ")
 			}
 			builder.WriteString(item.Text)
+
+			for _, tag := range item.Tags {
+				builder.WriteString(" #" + tag)
+			}
 
 			if item.Folded {
 				builder.WriteString(" <!-- fold -->")

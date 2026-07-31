@@ -40,6 +40,7 @@ type AppModel struct {
 	TreeView     TreeView
 	StatusBar    StatusBar
 	HelpModal    HelpModal
+	TagModal     *TagModal
 
 	Passphrase    string
 	StatusMsg     string
@@ -91,6 +92,7 @@ func InitialModel(cfg *config.Config, storage *model.Storage) (AppModel, tea.Cmd
 		TreeView:     NewTreeView(),
 		StatusBar:    NewStatusBar(),
 		HelpModal:    NewHelpModal(),
+		TagModal:     NewTagModal(cfg.Tags),
 		Width:        80,
 		Height:       24,
 	}
@@ -207,6 +209,18 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case ModeHelp:
 			if msg.String() == "esc" || msg.String() == "?" || msg.String() == "q" {
 				m.Mode = ModeNormal
+			}
+			newModel, cmd = m, nil
+		case ModeTagPicker:
+			closeModal, _ := m.TagModal.Update(msg)
+			m.PendingAutoSave = true
+			if closeModal {
+				m.Mode = ModeNormal
+				if m.Config != nil {
+					m.Config.Tags = m.TagModal.TagConfigs
+					_ = config.SaveConfig(m.Config)
+				}
+				_ = m.saveFile()
 			}
 			newModel, cmd = m, nil
 		}
@@ -677,6 +691,18 @@ func (m AppModel) updateNormal(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 		}
 		m.KeyBuffer = ""
+	case "T":
+		if m.SelectedID != "" {
+			item := m.Tree.FindItem(m.SelectedID)
+			if item != nil {
+				m.pushUndo()
+				m.Mode = ModeTagPicker
+				m.TagModal.SetItem(item, m.Tree)
+				m.KeyBuffer = ""
+				return m, nil
+			}
+		}
+		m.KeyBuffer = ""
 	case "u":
 		m.undo()
 		m.KeyBuffer = ""
@@ -853,6 +879,16 @@ func (m *AppModel) tryExecuteKeyBinding(keys []string) bool {
 			m.ensureValidCursor()
 			m.StatusMsg = "Marked todo [ ]"
 			return true
+		}
+	case "  t a": // Manage tags / labels
+		if m.SelectedID != "" {
+			item := m.Tree.FindItem(m.SelectedID)
+			if item != nil {
+				m.pushUndo()
+				m.Mode = ModeTagPicker
+				m.TagModal.SetItem(item, m.Tree)
+				return true
+			}
 		}
 	case "  z c":
 		if m.SelectedID != "" {
@@ -1074,6 +1110,10 @@ func (m AppModel) View() string {
 		return lipgloss.Place(m.Width, m.Height, lipgloss.Center, lipgloss.Center, m.HelpModal.Render(m.Width, m.Height))
 	}
 
+	if m.Mode == ModeTagPicker {
+		return lipgloss.Place(m.Width, m.Height, lipgloss.Center, lipgloss.Center, m.TagModal.Render(m.Width, m.Height))
+	}
+
 	// Normal View Layout: Header / Tree View / Text Input / WhichKey / Status Bar
 	headerStyle := lipgloss.NewStyle().
 		Bold(true).
@@ -1083,6 +1123,11 @@ func (m AppModel) View() string {
 		Align(lipgloss.Center)
 
 	header := headerStyle.Render(" HALPTASK  •  Bullet & Task Manager ")
+
+	m.TreeView.Tree = m.Tree
+	if m.Config != nil {
+		m.TreeView.TagConfigs = m.Config.Tags
+	}
 
 	visible := m.getVisibleItems()
 	treeContent := m.TreeView.Render(visible, m.CursorIndex, m.ScrollOffset)

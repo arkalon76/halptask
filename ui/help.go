@@ -64,6 +64,7 @@ func (h *HelpModal) Render(width, height int) string {
 				{"i / a / e", "Edit current bullet text"},
 				{"c", "Clear line text & enter insert mode"},
 				{"t", "Toggle bullet into task / Cycle status"},
+				{"T / <space> t a", "Manage task tags & labels (emojis & colors)"},
 				{"fc", "Toggle hide/show completed tasks"},
 				{"da", "Delete all completed tasks"},
 				{"dd / x", "Delete current bullet & sub-bullets"},

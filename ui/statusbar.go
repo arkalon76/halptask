@@ -16,6 +16,7 @@ const (
 	ModeSearch
 	ModePrompt
 	ModeHelp
+	ModeTagPicker
 )
 
 func (m AppMode) String() string {
@@ -30,6 +31,8 @@ func (m AppMode) String() string {
 		return "PROMPT"
 	case ModeHelp:
 		return "HELP"
+	case ModeTagPicker:
+		return "TAGS"
 	default:
 		return "NORMAL"
 	}
@@ -130,7 +133,7 @@ func (sb *StatusBar) Render(mode AppMode, filePath string, isEncrypted bool, sta
 	leftSide := lipgloss.JoinHorizontal(lipgloss.Center, modeSection, fileSection, encStr)
 	rightSide := lipgloss.JoinHorizontal(lipgloss.Center, statsBlock, posBlock)
 
-	if statusMsg != "" {
+	if statusMsg != "" && width >= 75 {
 		msgSection := msgStyle.Render(statusMsg)
 		leftSide = lipgloss.JoinHorizontal(lipgloss.Center, leftSide, msgSection)
 	}
@@ -138,8 +141,15 @@ func (sb *StatusBar) Render(mode AppMode, filePath string, isEncrypted bool, sta
 	leftWidth := lipgloss.Width(leftSide)
 	rightWidth := lipgloss.Width(rightSide)
 	midSpaces := width - leftWidth - rightWidth
+
 	if midSpaces < 0 {
-		midSpaces = 0
+		// On narrow terminals, omit statusMsg and truncate file section if needed
+		leftSide = lipgloss.JoinHorizontal(lipgloss.Center, modeSection, encStr)
+		leftWidth = lipgloss.Width(leftSide)
+		midSpaces = width - leftWidth - rightWidth
+		if midSpaces < 0 {
+			midSpaces = 0
+		}
 	}
 
 	middle := lipgloss.NewStyle().

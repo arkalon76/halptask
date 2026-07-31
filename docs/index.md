@@ -31,13 +31,15 @@ theme: default
 **Auto-Save & Encrypted Files**: 
 When `auto_save: true`, HalpTask will automatically save all tree state mutations in the background. If you open or create an encrypted file but haven't provided a passphrase yet, auto-save will gracefully pause until you enter your passphrase.
 
-### Data Storage Format
-HalpTask saves data in standard human-readable Markdown format:
+### Data Storage Format & Tags
+HalpTask saves data in standard human-readable Markdown format with `#tag` annotations:
 
 ```markdown
 - Welcome to HalpTask!
-  - [ ] Todo item
-  - [~] In progress item
+  - [ ] Todo item #bug #urgent
+  - [~] In progress item #work
   - [x] Completed item <!-- fold -->
     - Nested detail line
 ```
+
+Tags assigned to parent items are dynamically inherited down the sub-tree at runtime. Any tag mutation in UI overlays automatically triggers instant disk persistence when auto-save is active.

@@ -7,14 +7,34 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+type TagConfig struct {
+	Name  string `yaml:"name"`
+	Emoji string `yaml:"emoji"`
+	Color string `yaml:"color"` // LipGloss hex color string or name
+}
+
 type Config struct {
-	AutoSave     bool   `yaml:"auto_save"`
-	DataFile     string `yaml:"data_file"`
-	Encrypted    bool   `yaml:"encrypted"`
-	IndentSpaces int    `yaml:"indent_spaces"`
-	LeaderKey    string `yaml:"leader_key"`
-	ShowWhichKey bool   `yaml:"show_which_key"`
-	Theme        string `yaml:"theme"`
+	AutoSave     bool        `yaml:"auto_save"`
+	DataFile     string      `yaml:"data_file"`
+	Encrypted    bool        `yaml:"encrypted"`
+	IndentSpaces int         `yaml:"indent_spaces"`
+	LeaderKey    string      `yaml:"leader_key"`
+	ShowWhichKey bool        `yaml:"show_which_key"`
+	Theme        string      `yaml:"theme"`
+	Tags         []TagConfig `yaml:"tags,omitempty"`
+}
+
+func GetDefaultTagConfigs() []TagConfig {
+	return []TagConfig{
+		{Name: "bug", Emoji: "🐛", Color: "#f7768e"},     // Red
+		{Name: "urgent", Emoji: "🔥", Color: "#ff9e64"},  // Orange
+		{Name: "feature", Emoji: "✨", Color: "#7aa2f7"}, // Blue
+		{Name: "work", Emoji: "💼", Color: "#bb9af7"},    // Purple
+		{Name: "home", Emoji: "🏠", Color: "#9ece6a"},    // Green
+		{Name: "idea", Emoji: "💡", Color: "#e0af68"},    // Yellow
+		{Name: "pin", Emoji: "📌", Color: "#7dcfff"},     // Cyan
+		{Name: "review", Emoji: "👀", Color: "#f7768e"},  // Pink/Red
+	}
 }
 
 func DefaultConfig() *Config {
@@ -31,6 +51,7 @@ func DefaultConfig() *Config {
 		LeaderKey:    " ",
 		ShowWhichKey: true,
 		Theme:        "default",
+		Tags:         GetDefaultTagConfigs(),
 	}
 }
 
@@ -72,6 +93,9 @@ func LoadConfig() (*Config, error) {
 	}
 	if cfg.LeaderKey == "" {
 		cfg.LeaderKey = " "
+	}
+	if len(cfg.Tags) == 0 {
+		cfg.Tags = GetDefaultTagConfigs()
 	}
 	return cfg, nil
 }

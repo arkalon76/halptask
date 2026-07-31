@@ -28,6 +28,7 @@ func GetAllKeyBindings() []KeyBinding {
 		{Keys: []string{" ", "t", "d"}, KeyString: "d", Label: "mark done [x]", Category: "Tasks"},
 		{Keys: []string{" ", "t", "p"}, KeyString: "p", Label: "mark in-progress [~]", Category: "Tasks"},
 		{Keys: []string{" ", "t", "s"}, KeyString: "s", Label: "mark todo [ ]", Category: "Tasks"},
+		{Keys: []string{" ", "t", "a"}, KeyString: "a", Label: "manage tags / labels", Category: "Tasks"},
 
 		// Leader Fold operations
 		{Keys: []string{" ", "z", "c"}, KeyString: "c", Label: "close fold", Category: "Folds"},
@@ -74,6 +75,7 @@ func GetAllKeyBindings() []KeyBinding {
 		{Keys: []string{"d", "a"}, KeyString: "da", Label: "delete all completed tasks", Category: "Tasks"},
 		{Keys: []string{"f", "f"}, KeyString: "ff", Label: "zoom / hoist subtree", Category: "Nav"},
 		{Keys: []string{"t"}, KeyString: "t", Label: "toggle/cycle task status", Category: "Tasks"},
+		{Keys: []string{"T"}, KeyString: "T", Label: "manage tags / labels", Category: "Tasks"},
 		{Keys: []string{"u"}, KeyString: "u", Label: "undo", Category: "Edit"},
 		{Keys: []string{"ctrl+r"}, KeyString: "ctrl+r", Label: "redo", Category: "Edit"},
 		{Keys: []string{"/"}, KeyString: "/", Label: "search", Category: "Nav"},

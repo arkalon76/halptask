@@ -92,6 +92,11 @@ The app operates in one of several modes:
   - Key Derivation: **PBKDF2** with SHA-256 (100,000 iterations + 16-byte random salt + 12-byte nonce).
   - File Header: `# HALPTASK-ENCRYPTED-v1`.
 
+### 7. Task Tags & Dynamic Inheritance (`model/item.go`, `model/tree.go`)
+- **Direct Tags**: Assigned explicitly to an `Item` node (`Tags []string`), stored in Markdown as `#tagname`.
+- **Inherited Tags**: Dynamically inherited from parent/ancestor nodes at runtime (`tree.GetEffectiveTags()`).
+- **Subtask Movement Rules**: Moving subtasks (`Tab`, `Shift+Tab`, `J`, `K`) automatically recalculates inherited parent tags dynamically. Direct tags on subtasks remain untouched.
+
 ---
 
 ## ⚙️ Development Workflow & Testing
@@ -106,6 +111,16 @@ go build -o halptask .
 To run unit tests across all packages:
 ```bash
 go test ./...
+```
+
+To run UI menu layout consistency tests:
+```bash
+go test -v ./ui -run TestMenuLayoutConsistency
+```
+
+To inspect visual snapshots of all UI menus:
+```bash
+go test -v ./ui -run TestPrintMenuSnapshots
 ```
 
 To run tests with race detector enabled:
@@ -125,11 +140,17 @@ go fmt ./...
 
 1. **Preserve API Contracts & Parent Pointers**:
    Always verify parent references by calling `tree.SetParents()` when modifying tree node relationships.
-2. **Keybinding Registration & Prefix Collision Prevention**:
+2. **Auto-Save & Data Persistence for Modal Mutations**:
+   Whenever a modal or UI handler mutates tree state, item tags, or configuration settings (such as in `ModeTagPicker` or `ModeInsert`), **always** set `m.PendingAutoSave = true` and call `m.saveFile()` / `config.SaveConfig(m.Config)` upon closing the modal so changes persist immediately to disk.
+3. **ANSI-Safe Rendering & Padding Rules**:
+   - **Never** pass ANSI-styled strings to `fmt.Sprintf("%-18s", styledString)`. `fmt.Sprintf` counts invisible ANSI control bytes, causing column misalignment and broken line wrapping.
+   - **Always** calculate visual width using `lipgloss.Width()` on un-styled text or pad plain strings *before* applying LipGloss styles.
+   - **Never** include trailing newlines (`\n`) inside `lipgloss.Render("text\n")`. Move `\n` outside the `Render()` call (`lipgloss.Render("text") + "\n"`), preventing ANSI color reset sequences (`\x1b[0m`) from leaking to the start of subsequent lines and triggering soft wraps.
+4. **Keybinding Registration & Prefix Collision Prevention**:
    - When adding or updating keybindings, update `GetAllKeyBindings()` in [`ui/keys.go`](file:///Users/kenth/code/halptask/ui/keys.go) and key dispatchers in [`ui/app.go`](file:///Users/kenth/code/halptask/ui/app.go).
    - **Prefix Collision Rule**: Never register a single-key terminal action in `switch k` if multi-key sequences start with that same prefix (e.g. single `t` must NOT intercept before `tt`, `ts`, `td`, `tp`, `tc` can be typed). Prefix keys must accumulate into `KeyBuffer` rather than executing immediately.
    - Run `go test ./ui/...` to verify that `TestNoKeybindingPrefixCollisions` passes cleanly without prefix collision errors.
-3. **Markdown Compatibility**:
+5. **Markdown Compatibility**:
    Maintain backwards compatibility with the Markdown storage format in [`model/storage.go`](file:///Users/kenth/code/halptask/model/storage.go). Avoid breaking standard Markdown parsing.
-4. **Verification Step**:
+6. **Verification Step**:
    Before declaring a task resolved, ALWAYS run `go test ./...` and `go build -o halptask .` to ensure zero compilation or runtime regression errors.

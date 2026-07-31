@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/kenth/halptask/config"
 	"github.com/kenth/halptask/model"
 )
 
@@ -15,6 +16,8 @@ type TreeView struct {
 	SearchQuery  string
 	MatchedIDs   map[string]bool
 	IndentSpaces int
+	Tree         *model.Tree
+	TagConfigs   []config.TagConfig
 }
 
 func NewTreeView() TreeView {
@@ -23,6 +26,7 @@ func NewTreeView() TreeView {
 		Height:       20,
 		IndentSpaces: 2,
 		MatchedIDs:   make(map[string]bool),
+		TagConfigs:   config.GetDefaultTagConfigs(),
 	}
 }
 
@@ -155,6 +159,12 @@ func (tv *TreeView) Render(visible []model.VisibleItem, cursorIndex int, scrollO
 			formattedText = searchMatchStyle.Render(item.Text)
 		}
 
+		// Tag rendering (Direct & Inherited)
+		tagStr := tv.formatTags(item)
+		if tagStr != "" {
+			formattedText += " " + tagStr
+		}
+
 		lineContent := fmt.Sprintf("%s%s%s%s%s", cursorStr, indentStr, prefix, statusBox, formattedText)
 
 		if isSelected {
@@ -165,4 +175,59 @@ func (tv *TreeView) Render(visible []model.VisibleItem, cursorIndex int, scrollO
 	}
 
 	return strings.Join(lines, "\n")
+}
+
+func (tv *TreeView) formatTags(item *model.Item) string {
+	if tv.Tree == nil || item == nil {
+		return ""
+	}
+	direct, inherited := tv.Tree.GetEffectiveTags(item)
+	if len(direct) == 0 && len(inherited) == 0 {
+		return ""
+	}
+
+	tagConfigMap := make(map[string]config.TagConfig)
+	for _, tc := range tv.TagConfigs {
+		tagConfigMap[strings.ToLower(tc.Name)] = tc
+	}
+
+	var badges []string
+
+	// Direct tags (solid badge)
+	for _, dt := range direct {
+		tagLower := strings.ToLower(dt)
+		tc, ok := tagConfigMap[tagLower]
+		emoji := "🏷️"
+		colorHex := "#7aa2f7"
+		if ok {
+			if tc.Emoji != "" {
+				emoji = tc.Emoji
+			}
+			if tc.Color != "" {
+				colorHex = tc.Color
+			}
+		}
+		style := lipgloss.NewStyle().Foreground(lipgloss.Color(colorHex)).Bold(true)
+		badges = append(badges, style.Render(fmt.Sprintf("[%s %s]", emoji, dt)))
+	}
+
+	// Inherited tags (subtle/faint inherited badge with ↖)
+	for _, it := range inherited {
+		tagLower := strings.ToLower(it)
+		tc, ok := tagConfigMap[tagLower]
+		emoji := "🏷️"
+		colorHex := "#7aa2f7"
+		if ok {
+			if tc.Emoji != "" {
+				emoji = tc.Emoji
+			}
+			if tc.Color != "" {
+				colorHex = tc.Color
+			}
+		}
+		style := lipgloss.NewStyle().Foreground(lipgloss.Color(colorHex)).Faint(true)
+		badges = append(badges, style.Render(fmt.Sprintf("[↖%s %s]", emoji, it)))
+	}
+
+	return strings.Join(badges, " ")
 }

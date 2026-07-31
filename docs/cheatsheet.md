@@ -39,6 +39,7 @@ Pressing `<space>` or pressing the first key of any multi-character command (suc
 | `<space> t s` | `[ ]` | Mark as **Todo** (Gray empty checkbox) |
 | `<space> t p` | `[~]` | Mark as **In Progress** (Orange `~` indicator) |
 | `<space> t d` | `[x]` | Mark as **Done** (Green `X`, faint strikethrough text) |
+| `<space> t a` | `🏷️` | Open **Tag / Label Manager** overlay |
 
 ### 3. Fold Menu (`<space> z ...`)
 
@@ -98,11 +99,26 @@ You can also use single or double-character Vim motions directly without pressin
 | `J` | Move bullet down among siblings |
 | `K` | Move bullet up among siblings |
 | `t` | Toggle bullet into task / Cycle task status |
+| `T` | Open **Tag / Label Manager** overlay |
 | `fc` | Toggle hide/show `[x]` completed tasks |
 | `da` | Delete all `[x]` completed tasks |
 | `ww` | Quick save file to disk |
 | `u` | Undo last modification |
 | `Ctrl+r` | Redo last modification |
+
+---
+
+## 🏷️ Task Tags & Labels
+
+HalpTask supports rich tag management with emojis and customizable colors.
+
+### Key Features & Rules:
+- **Direct Tags**: Assigned explicitly to a task (`T` or `<space> t a`). Persisted as `#tagname` in markdown files. Rendered as `[🐛 bug]`.
+- **Inherited Tags**: Dynamically inherited from parent tasks down the subtree. Rendered with an inherited indicator `[↖🔥 urgent]`.
+- **Subtask Movement Rules**:
+  - Moving a subtask out of a parent (`Shift+Tab` / move out) automatically removes inherited parent tags. Direct tags remain untouched.
+  - Moving a subtask into a parent (`Tab` / move in) dynamically inherits the new parent's tags.
+- **Tag Creation Wizard**: Press `n` inside the Tag Overlay (`T`) to create custom tags with custom emojis and a 12-color ANSI palette.
 
 ### Fold Shortcuts
 

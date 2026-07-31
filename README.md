@@ -28,6 +28,10 @@ Detailed documentation and guides are available in the [`docs/`](docs/index.md) 
   - **Todo**: `[ ]` (Gray empty box)
   - **In Progress**: `[~]` (Orange `~` indicator)
   - **Done**: `[x]` (Green `X` checkmark with faint strikethrough text styling)
+- **Task Tags & Labels 🏷️**:
+  - Assign direct tags (`T` or `<space> t a`) with emojis and customizable colors.
+  - Subtasks dynamically inherit parent tags (`[↖🔥 urgent]`). Unindenting/moving subtasks automatically cleans up inherited tags.
+  - Plain text Markdown storage as `#tagname`.
 - **Hierarchical Folding**:
   - Collapse (`zc`, `h`), Expand (`zo`, `l`), Toggle (`za`), Close All (`zM`), Open All (`zR`).
   - Child count badges for collapsed subtrees (`▶ [3]`).
@@ -85,6 +89,7 @@ go build -o halptask .
 | `<space> t d` | Tasks | Mark Done `[x]` (Green X, strikethrough) |
 | `<space> t p` | Tasks | Mark In Progress `[~]` (Orange ~) |
 | `<space> t s` | Tasks | Mark Todo `[ ]` (Gray empty) |
+| `<space> t a` / `T` | Tasks | Manage task tags & labels |
 | `<space> z c` | Folds | Close fold |
 | `<space> z o` | Folds | Open fold |
 | `<space> z a` | Folds | Toggle fold |

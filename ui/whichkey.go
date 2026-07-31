@@ -173,11 +173,15 @@ func (wk *WhichKeyModel) Render(allBindings []KeyBinding, width int) string {
 		items = append(items, fmt.Sprintf("%s %s", kStr, lStr))
 	}
 
-	// Format into columns (3 or 4 columns)
+	// Dynamic columns based on available width
 	cols := 3
-	if width > 100 {
+	if width < 70 {
+		cols = 2
+	} else if width > 110 {
 		cols = 4
 	}
+
+	colWidth := (width - 6) / cols
 
 	var rows []string
 	for i := 0; i < len(items); i += cols {
@@ -188,9 +192,12 @@ func (wk *WhichKeyModel) Render(allBindings []KeyBinding, width int) string {
 
 		var rowParts []string
 		for j := i; j < end; j++ {
-			// pad each column to ~ 24 chars
-			part := lipgloss.NewStyle().Width((width - 8) / cols).Render(items[j])
-			rowParts = append(rowParts, part)
+			visW := lipgloss.Width(items[j])
+			padding := ""
+			if visW < colWidth {
+				padding = strings.Repeat(" ", colWidth-visW)
+			}
+			rowParts = append(rowParts, items[j]+padding)
 		}
 		rows = append(rows, strings.Join(rowParts, ""))
 	}

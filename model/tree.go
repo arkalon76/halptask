@@ -636,3 +636,70 @@ func (t *Tree) Search(query string) []string {
 	recurse(t.Roots)
 	return matchedIDs
 }
+
+// GetEffectiveTags returns direct tags on the item and tags dynamically inherited from parent hierarchy.
+func (t *Tree) GetEffectiveTags(item *Item) (direct []string, inherited []string) {
+	if item == nil {
+		return nil, nil
+	}
+	direct = append([]string{}, item.Tags...)
+
+	directSet := make(map[string]bool)
+	for _, dt := range direct {
+		directSet[strings.ToLower(dt)] = true
+	}
+
+	inheritedMap := make(map[string]bool)
+	curr := item.Parent
+	for curr != nil {
+		for _, pt := range curr.Tags {
+			tLower := strings.ToLower(pt)
+			if !directSet[tLower] && !inheritedMap[tLower] {
+				inheritedMap[tLower] = true
+				inherited = append(inherited, tLower)
+			}
+		}
+		curr = curr.Parent
+	}
+	return direct, inherited
+}
+
+// GetAllTags returns combined slice of direct and inherited tags without duplicates.
+func (t *Tree) GetAllTags(item *Item) []string {
+	direct, inherited := t.GetEffectiveTags(item)
+	all := append([]string{}, direct...)
+	all = append(all, inherited...)
+	return all
+}
+
+// SearchByTag returns matching item IDs that have the given tag (direct or inherited).
+func (t *Tree) SearchByTag(tag string) []string {
+	tag = strings.ToLower(strings.TrimPrefix(tag, "#"))
+	if tag == "" {
+		return nil
+	}
+	t.SetParents()
+	var matchedIDs []string
+
+	var recurse func(items []*Item)
+	recurse = func(items []*Item) {
+		for _, item := range items {
+			allTags := t.GetAllTags(item)
+			hasTag := false
+			for _, itemTag := range allTags {
+				if strings.EqualFold(itemTag, tag) {
+					hasTag = true
+					break
+				}
+			}
+			if hasTag {
+				matchedIDs = append(matchedIDs, item.ID)
+			}
+			if len(item.Children) > 0 {
+				recurse(item.Children)
+			}
+		}
+	}
+	recurse(t.Roots)
+	return matchedIDs
+}

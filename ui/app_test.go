@@ -219,3 +219,64 @@ func TestOpenAndChildShortcuts(t *testing.T) {
 	}
 }
 
+func TestTagPickerAutoSave(t *testing.T) {
+	tmpDir := t.TempDir()
+	dataFile := tmpDir + "/tasks.txt"
+
+	cfg := config.DefaultConfig()
+	cfg.AutoSave = true
+	cfg.DataFile = dataFile
+
+	storage := model.NewStorage(dataFile, false)
+	tree := model.NewTree()
+	item := tree.InsertBelow("", "Build feature")
+
+	app := AppModel{
+		Config:    cfg,
+		Storage:   storage,
+		Tree:      tree,
+		Mode:      ModeNormal,
+		TagModal:  NewTagModal(cfg.Tags),
+		WhichKey:  NewWhichKeyModel(),
+		QuickHelp: NewQuickHelp(),
+		TreeView:  NewTreeView(),
+		StatusBar: NewStatusBar(),
+		HelpModal: NewHelpModal(),
+	}
+	app.ensureValidCursor()
+	app.SelectedID = item.ID
+
+	// 1. Open TagPicker via 'T'
+	m, _ := app.updateNormal(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'T'}})
+	app = m.(AppModel)
+	if app.Mode != ModeTagPicker {
+		t.Fatalf("Expected AppMode to be ModeTagPicker after pressing 'T', got %v", app.Mode)
+	}
+
+	// 2. Toggle tag 1 ("bug") in TagModal
+	m, _ = app.Update(tea.KeyMsg{Type: tea.KeyEnter}) // toggle first tag
+	app = m.(AppModel)
+
+	targetItem := app.Tree.FindItem(item.ID)
+	if !targetItem.HasDirectTag("bug") {
+		t.Fatalf("Expected target item to have direct tag 'bug'")
+	}
+
+	// 3. Close TagPicker modal via 'esc'
+	m, _ = app.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	app = m.(AppModel)
+
+	if app.Mode != ModeNormal {
+		t.Fatalf("Expected mode to reset to ModeNormal after esc, got %v", app.Mode)
+	}
+
+	// 4. Verify data file on disk contains the tag #bug!
+	loadedTree, err := storage.Load("")
+	if err != nil {
+		t.Fatalf("Failed to load saved data file: %v", err)
+	}
+	if len(loadedTree.Roots) == 0 || !loadedTree.Roots[0].HasDirectTag("bug") {
+		t.Fatalf("Saved file on disk missing tag 'bug'")
+	}
+}
+
