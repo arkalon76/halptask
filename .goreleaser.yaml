@@ -17,7 +17,9 @@ builds:
       - arm64
 
 archives:
-  - format: tar.gz
+  - id: default
+    formats:
+      - tar.gz
     name_template: >-
       {{ .ProjectName }}_
       {{- title .Os }}_
@@ -27,7 +29,38 @@ archives:
       {{- if .Arm }}v{{ .Arm }}{{ end }}
     format_overrides:
       - goos: windows
-        format: zip
+        formats:
+          - zip
+  - id: binary
+    formats:
+      - binary
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+
+nfpms:
+  - id: default
+    package_name: halptask
+    vendor: HalpTask
+    homepage: https://github.com/kenth/halptask
+    maintainer: Kenth <kenth@example.com>
+    description: A high-performance keyboard-driven TUI bullet point and task manager
+    license: MIT
+    formats:
+      - deb
+      - rpm
+    file_name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- if eq .Arch "amd64" }}amd64
+      {{- else if eq .Arch "arm64" }}arm64
+      {{- else }}{{ .Arch }}{{ end }}
+
+
 
 changelog:
   sort: asc

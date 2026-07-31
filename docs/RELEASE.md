@@ -25,15 +25,17 @@ Releases are triggered automatically whenever you push a Git tag to the reposito
    - Head over to the **Actions** tab in your GitHub repository.
    - You will see a workflow named `Release` running.
    - Once the workflow finishes successfully, a new release will be published on the **Releases** page of your repository.
-   - The release will include auto-generated release notes (based on your commit history) and pre-compiled binaries for:
-     - Linux (amd64, arm64)
-     - macOS (amd64, arm64)
-     - Windows (amd64, arm64)
+    - The release will include auto-generated release notes (based on your commit history) and artifacts:
+      - **Standalone Uncompressed Binaries**: Direct executables (`halptask_Linux_x86_64`, `halptask_Darwin_arm64`, `halptask_Windows_x86_64.exe`, etc.) for instant use without unpacking.
+      - **Linux Packages**: `.deb` (Debian/Ubuntu) and `.rpm` (Fedora/RHEL) packages for native package manager installation.
+      - **Compressed Archives**: Standard `.tar.gz` and `.zip` archives for traditional distribution.
+      - **Installer Script**: Automated one-line installation via `curl -fsSL ... | bash`.
 
 ## Configuration Details
 
-- **`.goreleaser.yaml`**: Contains the build and archiving configuration for GoReleaser. It specifies the target operating systems and architectures, format of the archives (tar.gz for Linux/macOS, zip for Windows), and rules for changelog generation.
-- **`.github/workflows/release.yml`**: The GitHub Actions workflow that installs Go, checks out the code, and runs the `goreleaser` action when a new tag is pushed.
+- **`.goreleaser.yaml`**: Configured with GoReleaser v2 specifications. Generates both raw standalone binary assets (`formats: [binary]`) and compressed archives (`formats: [tar.gz, zip]`), as well as Debian (`.deb`) and RedHat (`.rpm`) packages (`nfpms`).
+- **`scripts/install.sh`**: Portable shell installer script that auto-detects OS/architecture, retrieves the raw binary asset from GitHub Releases, and places it into `/usr/local/bin` (or `~/.local/bin`).
+- **`.github/workflows/release.yml`**: GitHub Actions workflow that executes GoReleaser on new version tag pushes.
 
 ## Testing Locally (Optional)
 

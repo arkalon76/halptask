@@ -45,19 +45,45 @@ Detailed documentation and guides are available in the [`docs/`](docs/index.md) 
 
 ---
 
-## ⚡ Quick Start
+## ⚡ Installation & Quick Start
 
-### Build & Install
+### 🚀 One-Line Installer (macOS & Linux)
+
+Install the latest pre-compiled binary instantly without manually unpacking archives:
 
 ```bash
-# Clone the repository
+curl -fsSL https://raw.githubusercontent.com/kenth/halptask/main/scripts/install.sh | bash
+```
+
+### 📦 Standalone Binary Download
+
+Download direct executable binaries for your OS and Architecture directly from [GitHub Releases](https://github.com/kenth/halptask/releases/latest):
+
+```bash
+# macOS (Apple Silicon arm64)
+curl -LO https://github.com/kenth/halptask/releases/latest/download/halptask_Darwin_arm64
+chmod +x halptask_Darwin_arm64 && sudo mv halptask_Darwin_arm64 /usr/local/bin/halptask
+
+# Linux (x86_64)
+curl -LO https://github.com/kenth/halptask/releases/latest/download/halptask_Linux_x86_64
+chmod +x halptask_Linux_x86_64 && sudo mv halptask_Linux_x86_64 /usr/local/bin/halptask
+```
+
+### 🐧 Linux Packages (.deb / .rpm)
+
+- **Debian / Ubuntu**: `sudo apt install ./halptask_<version>_amd64.deb`
+- **Fedora / RHEL**: `sudo dnf install ./halptask_<version>_amd64.rpm`
+
+### 🛠️ Build & Install from Source
+
+```bash
+# Using Go
+go install github.com/kenth/halptask@latest
+
+# Or clone and build manually
 git clone https://github.com/kenth/halptask.git
 cd halptask
-
-# Build local binary
 go build -o halptask .
-
-# Run halptask
 ./halptask
 ```
 
