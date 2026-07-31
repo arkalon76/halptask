@@ -106,7 +106,7 @@ func TestMenuLayoutConsistency(t *testing.T) {
 		for _, m := range modes {
 			for _, w := range testWidths {
 				sb.Width = w
-				rendered := sb.Render(m, "/path/to/data.txt", true, stats, 1, 10, "Status OK")
+				rendered := sb.Render(m, "/path/to/data.txt", true, stats, 1, 10, "Status OK", "")
 				visWidth := lipgloss.Width(rendered)
 				if visWidth > w {
 					t.Errorf("StatusBar (mode %v) exceeds width %d (got %d)", m, w, visWidth)

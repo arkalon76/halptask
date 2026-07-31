@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/kenth/halptask/config"
 	"github.com/kenth/halptask/model"
+	"github.com/kenth/halptask/updater"
 )
 
 type PromptType int
@@ -17,6 +18,30 @@ const (
 	PromptPassphraseLoad PromptType = iota
 	PromptPassphraseSet
 )
+
+type VersionCheckMsg struct {
+	Info *updater.ReleaseInfo
+	Err  error
+}
+
+type UpdateResultMsg struct {
+	Version string
+	Err     error
+}
+
+func checkUpdateCmd(version, repo string) tea.Cmd {
+	return func() tea.Msg {
+		rel, err := updater.CheckForUpdate(version, repo)
+		return VersionCheckMsg{Info: rel, Err: err}
+	}
+}
+
+func doUpdateCmd(rel *updater.ReleaseInfo) tea.Cmd {
+	return func() tea.Msg {
+		err := updater.DoUpdate(rel)
+		return UpdateResultMsg{Version: rel.Version, Err: err}
+	}
+}
 
 type AppModel struct {
 	Config       *config.Config
@@ -54,6 +79,11 @@ type AppModel struct {
 
 	// Key sequence buffer for multi-keystroke commands (e.g. "gg", "dd", "zc")
 	KeyBuffer string
+
+	Version         string
+	UpdateInfo      *updater.ReleaseInfo
+	UpdateAvailable bool
+	IsUpdating      bool
 }
 
 func (m *AppModel) getVisibleItems() []model.VisibleItem {
@@ -76,25 +106,28 @@ func InitialModel(cfg *config.Config, storage *model.Storage) (AppModel, tea.Cmd
 	pi.EchoCharacter = '•'
 
 	m := AppModel{
-		Config:       cfg,
-		Storage:      storage,
-		Tree:         model.NewTree(),
-		UndoStack:    []*model.Tree{},
-		RedoStack:    []*model.Tree{},
-		Mode:         ModeNormal,
-		CursorIndex:  0,
-		ScrollOffset: 0,
-		TextInput:    ti,
-		SearchInput:  si,
-		PromptInput:  pi,
-		WhichKey:     NewWhichKeyModel(),
-		QuickHelp:    NewQuickHelp(),
-		TreeView:     NewTreeView(),
-		StatusBar:    NewStatusBar(),
-		HelpModal:    NewHelpModal(),
-		TagModal:     NewTagModal(cfg.Tags),
-		Width:        80,
-		Height:       24,
+		Config:          cfg,
+		Storage:         storage,
+		Tree:            model.NewTree(),
+		UndoStack:       []*model.Tree{},
+		RedoStack:       []*model.Tree{},
+		Mode:            ModeNormal,
+		CursorIndex:     0,
+		ScrollOffset:    0,
+		TextInput:       ti,
+		SearchInput:     si,
+		PromptInput:     pi,
+		WhichKey:        NewWhichKeyModel(),
+		QuickHelp:       NewQuickHelp(),
+		TreeView:        NewTreeView(),
+		StatusBar:       NewStatusBar(),
+		HelpModal:       NewHelpModal(),
+		TagModal:        NewTagModal(cfg.Tags),
+		Width:           80,
+		Height:          24,
+		Version:         "0.0.3",
+		UpdateAvailable: false,
+		IsUpdating:      false,
 	}
 
 	// Check if target file is encrypted
@@ -176,6 +209,9 @@ func (m *AppModel) ensureValidCursor() {
 }
 
 func (m AppModel) Init() tea.Cmd {
+	if m.Config != nil && m.Config.CheckUpdates {
+		return checkUpdateCmd(m.Version, m.Config.GithubRepo)
+	}
 	return nil
 }
 
@@ -184,6 +220,30 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var newModel tea.Model = m
 
 	switch msg := msg.(type) {
+	case VersionCheckMsg:
+		if msg.Err == nil && msg.Info != nil {
+			m.UpdateInfo = msg.Info
+			if msg.Info.NewRepo != "" && m.Config != nil && msg.Info.NewRepo != m.Config.GithubRepo {
+				m.Config.GithubRepo = msg.Info.NewRepo
+				_ = config.SaveConfig(m.Config)
+			}
+			if msg.Info.HasUpdate {
+				m.UpdateAvailable = true
+				m.StatusMsg = fmt.Sprintf("✨ New version v%s available! Press <space> U to update", msg.Info.Version)
+			}
+		}
+		return m, nil
+
+	case UpdateResultMsg:
+		m.IsUpdating = false
+		if msg.Err != nil {
+			m.StatusMsg = fmt.Sprintf("Update failed: %v", msg.Err)
+		} else {
+			m.UpdateAvailable = false
+			m.StatusMsg = fmt.Sprintf("🎉 Successfully updated halptask to v%s! Please restart.", msg.Version)
+		}
+		return m, nil
+
 	case tea.WindowSizeMsg:
 		m.Width = msg.Width
 		m.Height = msg.Height
@@ -263,12 +323,12 @@ func (m AppModel) updateNormal(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		// Keystroke while WhichKey active
 		m.WhichKey.PrefixKeys = append(m.WhichKey.PrefixKeys, k)
 
-		actionExecuted := m.tryExecuteKeyBinding(m.WhichKey.PrefixKeys)
+		actionExecuted, actionCmd := m.tryExecuteKeyBinding(m.WhichKey.PrefixKeys)
 		if actionExecuted {
 			m.WhichKey.Active = false
 			m.WhichKey.PrefixKeys = nil
 			m.KeyBuffer = ""
-			return m, nil
+			return m, actionCmd
 		}
 
 		// Check double-character command matches (e.g. "gg", "dd", "zc", "zo", "za", "zM", "zR", "ww", "fc", "da", "ff", "oo", "oc")
@@ -730,7 +790,7 @@ func (m AppModel) updateNormal(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m *AppModel) tryExecuteKeyBinding(keys []string) bool {
+func (m *AppModel) tryExecuteKeyBinding(keys []string) (bool, tea.Cmd) {
 	keySeq := strings.Join(keys, " ")
 
 	switch keySeq {
@@ -749,7 +809,7 @@ func (m *AppModel) tryExecuteKeyBinding(keys []string) bool {
 		m.Mode = ModeInsert
 		m.TextInput.SetValue("")
 		m.TextInput.Focus()
-		return true
+		return true, nil
 	case "  b N": // Space > Bullets > New above
 		m.pushUndo()
 		newItem := m.Tree.InsertAbove(m.SelectedID, "")
@@ -765,7 +825,7 @@ func (m *AppModel) tryExecuteKeyBinding(keys []string) bool {
 		m.Mode = ModeInsert
 		m.TextInput.SetValue("")
 		m.TextInput.Focus()
-		return true
+		return true, nil
 	case "  b c": // Space > Bullets > Add child
 		if m.SelectedID != "" {
 			m.pushUndo()
@@ -782,7 +842,7 @@ func (m *AppModel) tryExecuteKeyBinding(keys []string) bool {
 			m.Mode = ModeInsert
 			m.TextInput.SetValue("")
 			m.TextInput.Focus()
-			return true
+			return true, nil
 		}
 	case "  b e": // Space > Bullets > Edit
 		if m.SelectedID != "" {
@@ -792,7 +852,7 @@ func (m *AppModel) tryExecuteKeyBinding(keys []string) bool {
 				m.Mode = ModeInsert
 				m.TextInput.SetValue(item.Text)
 				m.TextInput.Focus()
-				return true
+				return true, nil
 			}
 		}
 	case "  b d": // Space > Bullets > Delete
@@ -801,21 +861,21 @@ func (m *AppModel) tryExecuteKeyBinding(keys []string) bool {
 			m.Tree.Delete(m.SelectedID)
 			m.ensureValidCursor()
 			m.StatusMsg = "Deleted bullet"
-			return true
+			return true, nil
 		}
 	case "  b i": // Indent
 		if m.SelectedID != "" {
 			m.pushUndo()
 			m.Tree.Indent(m.SelectedID)
 			m.ensureValidCursor()
-			return true
+			return true, nil
 		}
 	case "  b o": // Unindent
 		if m.SelectedID != "" {
 			m.pushUndo()
 			m.Tree.Unindent(m.SelectedID)
 			m.ensureValidCursor()
-			return true
+			return true, nil
 		}
 	case "  b j": // Move down
 		if m.SelectedID != "" {
@@ -824,7 +884,7 @@ func (m *AppModel) tryExecuteKeyBinding(keys []string) bool {
 				m.CursorIndex++
 				m.ensureValidCursor()
 			}
-			return true
+			return true, nil
 		}
 	case "  b k": // Move up
 		if m.SelectedID != "" {
@@ -833,28 +893,28 @@ func (m *AppModel) tryExecuteKeyBinding(keys []string) bool {
 				m.CursorIndex--
 				m.ensureValidCursor()
 			}
-			return true
+			return true, nil
 		}
 	case "  b t": // Toggle task
 		if m.SelectedID != "" {
 			m.pushUndo()
 			m.Tree.ToggleTask(m.SelectedID)
 			m.ensureValidCursor()
-			return true
+			return true, nil
 		}
 	case "  t t": // Toggle task
 		if m.SelectedID != "" {
 			m.pushUndo()
 			m.Tree.ToggleTask(m.SelectedID)
 			m.ensureValidCursor()
-			return true
+			return true, nil
 		}
 	case "  t c": // Cycle task status
 		if m.SelectedID != "" {
 			m.pushUndo()
 			m.Tree.CycleStatus(m.SelectedID)
 			m.ensureValidCursor()
-			return true
+			return true, nil
 		}
 	case "  t d": // Mark Done [x]
 		if m.SelectedID != "" {
@@ -862,7 +922,7 @@ func (m *AppModel) tryExecuteKeyBinding(keys []string) bool {
 			m.Tree.SetStatus(m.SelectedID, model.StatusDone)
 			m.ensureValidCursor()
 			m.StatusMsg = "Marked done [x]"
-			return true
+			return true, nil
 		}
 	case "  t p": // Mark In Progress [~]
 		if m.SelectedID != "" {
@@ -870,7 +930,7 @@ func (m *AppModel) tryExecuteKeyBinding(keys []string) bool {
 			m.Tree.SetStatus(m.SelectedID, model.StatusInProgress)
 			m.ensureValidCursor()
 			m.StatusMsg = "Marked in-progress [~]"
-			return true
+			return true, nil
 		}
 	case "  t s": // Mark Todo [ ]
 		if m.SelectedID != "" {
@@ -878,7 +938,7 @@ func (m *AppModel) tryExecuteKeyBinding(keys []string) bool {
 			m.Tree.SetStatus(m.SelectedID, model.StatusTodo)
 			m.ensureValidCursor()
 			m.StatusMsg = "Marked todo [ ]"
-			return true
+			return true, nil
 		}
 	case "  t a": // Manage tags / labels
 		if m.SelectedID != "" {
@@ -887,35 +947,35 @@ func (m *AppModel) tryExecuteKeyBinding(keys []string) bool {
 				m.pushUndo()
 				m.Mode = ModeTagPicker
 				m.TagModal.SetItem(item, m.Tree)
-				return true
+				return true, nil
 			}
 		}
 	case "  z c":
 		if m.SelectedID != "" {
 			m.Tree.Fold(m.SelectedID)
 			m.ensureValidCursor()
-			return true
+			return true, nil
 		}
 	case "  z o":
 		if m.SelectedID != "" {
 			m.Tree.Unfold(m.SelectedID)
 			m.ensureValidCursor()
-			return true
+			return true, nil
 		}
 	case "  z a":
 		if m.SelectedID != "" {
 			m.Tree.ToggleFold(m.SelectedID)
 			m.ensureValidCursor()
-			return true
+			return true, nil
 		}
 	case "  z M":
 		m.Tree.FoldAll()
 		m.ensureValidCursor()
-		return true
+		return true, nil
 	case "  z R":
 		m.Tree.UnfoldAll()
 		m.ensureValidCursor()
-		return true
+		return true, nil
 	case "  e e": // Toggle encryption
 		m.Storage.Encrypted = !m.Storage.Encrypted
 		if m.Storage.Encrypted && m.Passphrase == "" {
@@ -931,30 +991,47 @@ func (m *AppModel) tryExecuteKeyBinding(keys []string) bool {
 				m.StatusMsg = "Encryption DISABLED 🔓"
 			}
 		}
-		return true
+		return true, nil
 	case "  e p": // Change passphrase
 		m.Mode = ModePrompt
 		m.PromptType = PromptPassphraseSet
 		m.PromptInput.SetValue("")
 		m.PromptInput.Focus()
-		return true
+		return true, nil
 	case "  w", "  s":
 		_ = m.saveFile()
-		return true
+		return true, nil
 	case "  /":
 		m.Mode = ModeSearch
 		m.SearchInput.Focus()
-		return true
+		return true, nil
 	case "  ?":
 		m.Mode = ModeHelp
-		return true
+		return true, nil
+	case "  U": // Check / install update
+		if m.UpdateInfo != nil && m.UpdateInfo.HasUpdate {
+			canUpdate, realPath, reason := updater.CanUpdate()
+			if !canUpdate {
+				m.StatusMsg = fmt.Sprintf("Cannot update binary at %s: %s", realPath, reason)
+				return true, nil
+			}
+			m.IsUpdating = true
+			m.StatusMsg = fmt.Sprintf("Updating halptask to v%s...", m.UpdateInfo.Version)
+			return true, doUpdateCmd(m.UpdateInfo)
+		}
+		m.StatusMsg = "Checking for updates..."
+		repo := "arkalon76/halptask"
+		if m.Config != nil && m.Config.GithubRepo != "" {
+			repo = m.Config.GithubRepo
+		}
+		return true, checkUpdateCmd(m.Version, repo)
 	case "  q":
 		_ = m.saveFile()
 		// Return true so updating stops, quit will be dispatched
-		return true
+		return true, nil
 	}
 
-	return false
+	return false, nil
 }
 
 func (m AppModel) updateInsert(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
@@ -1163,7 +1240,11 @@ func (m AppModel) View() string {
 		filePath = m.Storage.FilePath
 		isEncrypted = m.Storage.Encrypted
 	}
-	statusBarStr := m.StatusBar.Render(m.Mode, filePath, isEncrypted, stats, m.CursorIndex+1, len(visible), m.StatusMsg)
+	updateBadge := ""
+	if m.UpdateAvailable && m.UpdateInfo != nil {
+		updateBadge = fmt.Sprintf("✨ v%s available", m.UpdateInfo.Version)
+	}
+	statusBarStr := m.StatusBar.Render(m.Mode, filePath, isEncrypted, stats, m.CursorIndex+1, len(visible), m.StatusMsg, updateBadge)
 
 	var viewParts []string
 	viewParts = append(viewParts, header)

@@ -46,7 +46,7 @@ func NewStatusBar() StatusBar {
 	return StatusBar{Width: 80}
 }
 
-func (sb *StatusBar) Render(mode AppMode, filePath string, isEncrypted bool, stats model.TaskStats, currentLine, totalLines int, statusMsg string) string {
+func (sb *StatusBar) Render(mode AppMode, filePath string, isEncrypted bool, stats model.TaskStats, currentLine, totalLines int, statusMsg string, updateBadge string) string {
 	width := sb.Width
 	if width <= 0 {
 		width = 80
@@ -131,6 +131,17 @@ func (sb *StatusBar) Render(mode AppMode, filePath string, isEncrypted bool, sta
 	fileSection := fileStyle.Render(filepath.Base(filePath))
 
 	leftSide := lipgloss.JoinHorizontal(lipgloss.Center, modeSection, fileSection, encStr)
+
+	if updateBadge != "" {
+		badgeSection := lipgloss.NewStyle().
+			Background(lipgloss.Color("#bb9af7")).
+			Foreground(lipgloss.Color("#1a1b26")).
+			Bold(true).
+			Padding(0, 1).
+			Render(updateBadge)
+		leftSide = lipgloss.JoinHorizontal(lipgloss.Center, leftSide, badgeSection)
+	}
+
 	rightSide := lipgloss.JoinHorizontal(lipgloss.Center, statsBlock, posBlock)
 
 	if statusMsg != "" && width >= 75 {

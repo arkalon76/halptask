@@ -15,6 +15,8 @@ type TagConfig struct {
 
 type Config struct {
 	AutoSave     bool        `yaml:"auto_save"`
+	CheckUpdates bool        `yaml:"check_updates"`
+	GithubRepo   string      `yaml:"github_repo"`
 	DataFile     string      `yaml:"data_file"`
 	Encrypted    bool        `yaml:"encrypted"`
 	IndentSpaces int         `yaml:"indent_spaces"`
@@ -45,6 +47,8 @@ func DefaultConfig() *Config {
 	defaultData := filepath.Join(home, ".config", "halptask", "data.txt")
 	return &Config{
 		AutoSave:     true,
+		CheckUpdates: true,
+		GithubRepo:   "arkalon76/halptask",
 		DataFile:     defaultData,
 		Encrypted:    false,
 		IndentSpaces: 2,
@@ -93,6 +97,9 @@ func LoadConfig() (*Config, error) {
 	}
 	if cfg.LeaderKey == "" {
 		cfg.LeaderKey = " "
+	}
+	if cfg.GithubRepo == "" {
+		cfg.GithubRepo = "arkalon76/halptask"
 	}
 	if len(cfg.Tags) == 0 {
 		cfg.Tags = GetDefaultTagConfigs()

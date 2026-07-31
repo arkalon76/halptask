@@ -44,6 +44,7 @@ func GetAllKeyBindings() []KeyBinding {
 		{Keys: []string{" ", "e", "p"}, KeyString: "p", Label: "set passphrase", Category: "Encrypt"},
 		{Keys: []string{" ", "/"}, KeyString: "/", Label: "search items", Category: "Leader"},
 		{Keys: []string{" ", "?"}, KeyString: "?", Label: "show help", Category: "Leader"},
+		{Keys: []string{" ", "U"}, KeyString: "U", Label: "check/install update", Category: "Leader"},
 		{Keys: []string{" ", "q"}, KeyString: "q", Label: "quit halptask", Category: "Leader"},
 
 		// Direct Vim Normal Keymaps
