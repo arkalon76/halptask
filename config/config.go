@@ -8,6 +8,7 @@ import (
 )
 
 type Config struct {
+	AutoSave     bool   `yaml:"auto_save"`
 	DataFile     string `yaml:"data_file"`
 	Encrypted    bool   `yaml:"encrypted"`
 	IndentSpaces int    `yaml:"indent_spaces"`
@@ -23,6 +24,7 @@ func DefaultConfig() *Config {
 	}
 	defaultData := filepath.Join(home, ".config", "halptask", "data.txt")
 	return &Config{
+		AutoSave:     true,
 		DataFile:     defaultData,
 		Encrypted:    false,
 		IndentSpaces: 2,

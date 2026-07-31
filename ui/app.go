@@ -49,6 +49,8 @@ type AppModel struct {
 	ZoomedID      string
 	HideCompleted bool
 
+	PendingAutoSave bool
+
 	// Key sequence buffer for multi-keystroke commands (e.g. "gg", "dd", "zc")
 	KeyBuffer string
 }
@@ -115,6 +117,7 @@ func InitialModel(cfg *config.Config, storage *model.Storage) (AppModel, tea.Cmd
 func (m *AppModel) pushUndo() {
 	m.UndoStack = append(m.UndoStack, m.Tree.Clone())
 	m.RedoStack = nil // Clear redo stack on new change
+	m.PendingAutoSave = true
 }
 
 func (m *AppModel) undo() {
@@ -127,6 +130,7 @@ func (m *AppModel) undo() {
 	m.UndoStack = m.UndoStack[:len(m.UndoStack)-1]
 	m.ensureValidCursor()
 	m.StatusMsg = "Undo"
+	m.PendingAutoSave = true
 }
 
 func (m *AppModel) redo() {
@@ -139,6 +143,7 @@ func (m *AppModel) redo() {
 	m.RedoStack = m.RedoStack[:len(m.RedoStack)-1]
 	m.ensureValidCursor()
 	m.StatusMsg = "Redo"
+	m.PendingAutoSave = true
 }
 
 func (m *AppModel) ensureValidCursor() {
@@ -174,6 +179,7 @@ func (m AppModel) Init() tea.Cmd {
 
 func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
+	var newModel tea.Model = m
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
@@ -186,26 +192,35 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.StatusBar.Width = msg.Width
 		m.HelpModal.Width = msg.Width
 		m.HelpModal.Height = msg.Height
+		newModel = m
 
 	case tea.KeyMsg:
 		switch m.Mode {
 		case ModeNormal:
-			return m.updateNormal(msg)
+			newModel, cmd = m.updateNormal(msg)
 		case ModeInsert:
-			return m.updateInsert(msg)
+			newModel, cmd = m.updateInsert(msg)
 		case ModeSearch:
-			return m.updateSearch(msg)
+			newModel, cmd = m.updateSearch(msg)
 		case ModePrompt:
-			return m.updatePrompt(msg)
+			newModel, cmd = m.updatePrompt(msg)
 		case ModeHelp:
 			if msg.String() == "esc" || msg.String() == "?" || msg.String() == "q" {
 				m.Mode = ModeNormal
 			}
-			return m, nil
+			newModel, cmd = m, nil
 		}
 	}
 
-	return m, cmd
+	if am, ok := newModel.(AppModel); ok {
+		if am.PendingAutoSave {
+			am.PendingAutoSave = false
+			am.autoSave()
+		}
+		return am, cmd
+	}
+
+	return newModel, cmd
 }
 
 func (m AppModel) updateNormal(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
@@ -789,13 +804,13 @@ func (m AppModel) updateInsert(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		text := strings.TrimSpace(m.TextInput.Value())
 		if m.SelectedID != "" {
 			item := m.Tree.FindItem(m.SelectedID)
-			if item != nil {
+			if item != nil && item.Text != text {
 				item.Text = text
+				m.PendingAutoSave = true
 			}
 		}
 		m.Mode = ModeNormal
 		m.TextInput.Blur()
-		_ = m.saveFile()
 		return m, nil
 	case "esc":
 		m.Mode = ModeNormal
@@ -881,6 +896,20 @@ func (m AppModel) updatePrompt(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	m.PromptInput, cmd = m.PromptInput.Update(msg)
 	return m, cmd
+}
+
+func (m *AppModel) autoSave() {
+	if !m.Config.AutoSave {
+		return
+	}
+	if m.Storage.Encrypted && m.Passphrase == "" {
+		m.StatusMsg = "Auto-save paused: passphrase required"
+		return
+	}
+	err := m.Storage.Save(m.Tree, m.Passphrase)
+	if err != nil {
+		m.StatusMsg = "Auto-save error: " + err.Error()
+	}
 }
 
 func (m *AppModel) saveFile() error {

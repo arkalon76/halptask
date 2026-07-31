@@ -19,6 +19,7 @@ Welcome to the HalpTask documentation!
 `~/.config/halptask/config.yaml`
 
 ```yaml
+auto_save: true
 data_file: ~/.config/halptask/data.txt
 encrypted: false
 indent_spaces: 2
@@ -26,6 +27,9 @@ leader_key: " "
 show_which_key: true
 theme: default
 ```
+
+**Auto-Save & Encrypted Files**: 
+When `auto_save: true`, HalpTask will automatically save all tree state mutations in the background. If you open or create an encrypted file but haven't provided a passphrase yet, auto-save will gracefully pause until you enter your passphrase.
 
 ### Data Storage Format
 HalpTask saves data in standard human-readable Markdown format:
