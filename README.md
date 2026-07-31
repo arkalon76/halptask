@@ -14,6 +14,7 @@ Detailed documentation and guides are available in the [`docs/`](docs/index.md) 
 
 - **[Keybindings Cheatsheet](docs/cheatsheet.md)**: Full interactive Leader Key (`<space>`) map and Vim shortcuts.
 - **[Documentation Index](docs/index.md)**: Architecture, data persistence, and configuration guide.
+- **[Release Guide](docs/RELEASE.md)**: Instructions for the automated GoReleaser pipeline.
 
 ---
 
@@ -113,19 +114,11 @@ theme: default
 
 ---
 
-## 🛠️ Cross-Compilation
+## 🛠️ Releases & Compilation
 
-To build binaries for all supported platforms:
+We use [GoReleaser](https://goreleaser.com) and GitHub Actions to automatically build and release binaries for macOS, Linux, and Windows across `amd64` and `arm64` architectures.
 
-```bash
-# macOS (Apple Silicon & Intel)
-GOOS=darwin GOARCH=arm64 go build -o dist/halptask-darwin-arm64 .
-GOOS=darwin GOARCH=amd64 go build -o dist/halptask-darwin-amd64 .
-
-# Linux (amd64 & ARM64)
-GOOS=linux GOARCH=amd64 go build -o dist/halptask-linux-amd64 .
-GOOS=linux GOARCH=arm64 go build -o dist/halptask-linux-arm64 .
-```
+For full details on the automated release process or how to build releases locally, refer to the **[Release Guide](docs/RELEASE.md)**.
 
 ---
 
