@@ -22,7 +22,7 @@ Detailed documentation and guides are available in the [`docs/`](docs/index.md) 
 
 - **Vim Native Keybindings**: Native Vim navigation (`j`, `k`, `h`, `l`, `gg`, `G`, `oo`, `oc`, `O`, `dd`, `x`, `u`, `ctrl+r`, `tab`, `shift+tab`).
 - **Leader Menu (`<space>`)**: Leader key popup window displaying all available shortcuts non-intrusively.
-- **Dynamic WhichKey Popup**: Visual popup updates as you type key prefixes (e.g. `<space> b` for bullets, `<space> t` for tasks, `<space> z` for folds).
+- **Dynamic WhichKey Popup**: Visual popup updates as you type key prefixes for Leader options (`<space> b`, `<space> t`, `<space> z`, `<space> e`) as well as all multi-character Vim prefixes (`o`, `d`, `z`, `g`, `w`, `f`).
 - **Bullet & Task Management**:
   - Convert any bullet point into a task with checkbox statuses.
   - **Todo**: `[ ]` (Gray empty box)

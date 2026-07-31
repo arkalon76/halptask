@@ -47,4 +47,24 @@ func TestWhichKeyOptions(t *testing.T) {
 	if !foundNewBelow {
 		t.Fatalf("expected 'new bullet below' under Space > b")
 	}
+
+	// WhichKey for prefix 'o'
+	wk.PrefixKeys = []string{"o"}
+	title, oOptions := wk.GetOptions(allBindings)
+	if title != " o " {
+		t.Fatalf("expected title ' o ', got %q", title)
+	}
+	foundOO := false
+	foundOC := false
+	for _, opt := range oOptions {
+		if opt.Key == "o" && opt.Label == "new bullet below" {
+			foundOO = true
+		}
+		if opt.Key == "c" && opt.Label == "add child bullet" {
+			foundOC = true
+		}
+	}
+	if !foundOO || !foundOC {
+		t.Fatalf("expected 'oo' and 'oc' options under 'o' prefix key")
+	}
 }

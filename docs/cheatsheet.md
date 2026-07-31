@@ -6,7 +6,7 @@ HalpTask uses native **Vim** keybindings combined with well-known Leader Key (`<
 
 ## 🚀 Leader Key Menu (`<space>`)
 
-Pressing `<space>` opens the interactive **WhichKey popup window** at the bottom of your screen. As you press subsequent keys, the popup dynamically updates to show available options.
+Pressing `<space>` or pressing the first key of any multi-character command (such as `o`, `d`, `z`, `g`, `w`, `f`) opens the interactive **WhichKey popup window** at the bottom of your screen. As you press subsequent keys, the popup dynamically updates to show available options and completion choices.
 
 ```
 ┌ Space (Leader Menu) ─────────────────────────────────────────────────────────┐

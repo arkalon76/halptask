@@ -230,7 +230,8 @@ func (m AppModel) updateNormal(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	m.StatusMsg = ""
 
 	// Handle WhichKey popup navigation
-	if m.WhichKey.Active || k == " " {
+	isPrefixTriggerKey := k == " " || k == "o" || k == "d" || k == "z" || k == "g" || k == "w" || k == "f"
+	if m.WhichKey.Active || isPrefixTriggerKey {
 		if k == "esc" {
 			m.WhichKey.Active = false
 			m.WhichKey.PrefixKeys = nil
@@ -238,15 +239,15 @@ func (m AppModel) updateNormal(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
-		if !m.WhichKey.Active && k == " " {
+		if !m.WhichKey.Active && isPrefixTriggerKey {
 			m.WhichKey.Active = true
-			m.WhichKey.PrefixKeys = []string{" "}
+			m.WhichKey.PrefixKeys = []string{k}
+			m.KeyBuffer = k
 			return m, nil
 		}
 
 		// Keystroke while WhichKey active
 		m.WhichKey.PrefixKeys = append(m.WhichKey.PrefixKeys, k)
-		m.KeyBuffer = strings.Join(m.WhichKey.PrefixKeys, " ")
 
 		actionExecuted := m.tryExecuteKeyBinding(m.WhichKey.PrefixKeys)
 		if actionExecuted {
@@ -254,6 +255,129 @@ func (m AppModel) updateNormal(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.WhichKey.PrefixKeys = nil
 			m.KeyBuffer = ""
 			return m, nil
+		}
+
+		// Check double-character command matches (e.g. "gg", "dd", "zc", "zo", "za", "zM", "zR", "ww", "fc", "da", "ff", "oo", "oc")
+		if len(m.WhichKey.PrefixKeys) == 2 {
+			seq := m.WhichKey.PrefixKeys[0] + m.WhichKey.PrefixKeys[1]
+			m.WhichKey.Active = false
+			m.WhichKey.PrefixKeys = nil
+			m.KeyBuffer = ""
+
+			switch seq {
+			case "gg":
+				m.CursorIndex = 0
+				m.ensureValidCursor()
+				return m, nil
+			case "dd":
+				if m.SelectedID != "" {
+					m.pushUndo()
+					nextID := m.Tree.Delete(m.SelectedID)
+					m.ensureValidCursor()
+					if nextID != "" {
+						visible := m.getVisibleItems()
+						for i, v := range visible {
+							if v.Item.ID == nextID {
+								m.CursorIndex = i
+								break
+							}
+						}
+					}
+					m.ensureValidCursor()
+					m.StatusMsg = "Deleted bullet"
+				}
+				return m, nil
+			case "zc":
+				if m.SelectedID != "" {
+					m.Tree.Fold(m.SelectedID)
+					m.ensureValidCursor()
+				}
+				return m, nil
+			case "zo":
+				if m.SelectedID != "" {
+					m.Tree.Unfold(m.SelectedID)
+					m.ensureValidCursor()
+				}
+				return m, nil
+			case "za":
+				if m.SelectedID != "" {
+					m.Tree.ToggleFold(m.SelectedID)
+					m.ensureValidCursor()
+				}
+				return m, nil
+			case "zM":
+				m.Tree.FoldAll()
+				m.ensureValidCursor()
+				return m, nil
+			case "zR":
+				m.Tree.UnfoldAll()
+				m.ensureValidCursor()
+				return m, nil
+			case "ww":
+				_ = m.saveFile()
+				m.StatusMsg = "File saved"
+				return m, nil
+			case "fc":
+				m.HideCompleted = !m.HideCompleted
+				if m.HideCompleted {
+					m.StatusMsg = "Hiding completed tasks [x]"
+				} else {
+					m.StatusMsg = "Showing all tasks"
+				}
+				m.ensureValidCursor()
+				return m, nil
+			case "da":
+				m.pushUndo()
+				count := m.Tree.DeleteCompleted()
+				m.ensureValidCursor()
+				m.StatusMsg = fmt.Sprintf("Cleared %d completed task(s)", count)
+				return m, nil
+			case "ff":
+				if m.ZoomedID == "" && m.SelectedID != "" {
+					m.ZoomedID = m.SelectedID
+					item := m.Tree.FindItem(m.ZoomedID)
+					if item != nil {
+						m.StatusMsg = fmt.Sprintf("Zoomed in: %s", item.Text)
+					}
+				} else {
+					m.ZoomedID = ""
+					m.StatusMsg = "Unzoomed (full view)"
+				}
+				m.ensureValidCursor()
+				return m, nil
+			case "oo":
+				m.pushUndo()
+				newItem := m.Tree.InsertBelow(m.SelectedID, "")
+				m.ensureValidCursor()
+				visible := m.getVisibleItems()
+				for i, v := range visible {
+					if v.Item.ID == newItem.ID {
+						m.CursorIndex = i
+						break
+					}
+				}
+				m.ensureValidCursor()
+				m.Mode = ModeInsert
+				m.TextInput.SetValue("")
+				m.TextInput.Focus()
+				return m, textinput.Blink
+			case "oc":
+				m.pushUndo()
+				newItem := m.Tree.AddChild(m.SelectedID, "")
+				m.ensureValidCursor()
+				visible := m.getVisibleItems()
+				for i, v := range visible {
+					if v.Item.ID == newItem.ID {
+						m.CursorIndex = i
+						break
+					}
+				}
+				m.ensureValidCursor()
+				m.Mode = ModeInsert
+				m.TextInput.SetValue("")
+				m.TextInput.Focus()
+				return m, textinput.Blink
+			}
 		}
 
 		// Check if prefix keys still match any known command

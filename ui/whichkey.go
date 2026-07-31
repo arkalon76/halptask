@@ -80,8 +80,16 @@ func (wk *WhichKeyModel) GetOptions(allBindings []KeyBinding) (string, []WhichKe
 				groupName = "+folds"
 			} else if nextKey == "e" {
 				groupName = "+encrypt"
+			} else if nextKey == "o" {
+				groupName = "+add/insert"
+			} else if nextKey == "d" {
+				groupName = "+delete"
+			} else if nextKey == "g" {
+				groupName = "+goto"
+			} else if nextKey == "w" {
+				groupName = "+save"
 			} else if nextKey == "f" {
-				groupName = "+file"
+				groupName = "+view/filter"
 			} else {
 				groupName = "+" + strings.ToLower(b.Category)
 			}
