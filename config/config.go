@@ -3,6 +3,8 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
 
 	"gopkg.in/yaml.v3"
 )
@@ -16,6 +18,8 @@ type TagConfig struct {
 type Config struct {
 	AutoSave        bool        `yaml:"auto_save"`
 	CheckUpdates    bool        `yaml:"check_updates"`
+	UpdateInterval  string      `yaml:"update_interval,omitempty"`
+	LastUpdateCheck string      `yaml:"last_update_check,omitempty"`
 	GithubRepo      string      `yaml:"github_repo"`
 	DataFile        string      `yaml:"data_file"`
 	Encrypted       bool        `yaml:"encrypted"`
@@ -60,6 +64,7 @@ func DefaultConfig() *Config {
 	return &Config{
 		AutoSave:        true,
 		CheckUpdates:    true,
+		UpdateInterval:  "daily",
 		GithubRepo:      "arkalon76/halptask",
 		DataFile:        defaultData,
 		Encrypted:       false,
@@ -105,6 +110,9 @@ func LoadConfig() (*Config, error) {
 	if err := yaml.Unmarshal(data, cfg); err != nil {
 		return cfg, err
 	}
+	if cfg.UpdateInterval == "" {
+		cfg.UpdateInterval = "daily"
+	}
 	if cfg.IndentSpaces <= 0 {
 		cfg.IndentSpaces = 2
 	}
@@ -140,4 +148,33 @@ func SaveConfig(cfg *Config) error {
 		return err
 	}
 	return os.WriteFile(ConfigFilePath(), data, 0644)
+}
+
+// ShouldCheckForUpdate determines if an update check should be performed based on config settings and last check time.
+func ShouldCheckForUpdate(cfg *Config) bool {
+	if cfg == nil || !cfg.CheckUpdates || strings.ToLower(cfg.UpdateInterval) == "never" || strings.ToLower(cfg.UpdateInterval) == "off" {
+		return false
+	}
+	if strings.ToLower(cfg.UpdateInterval) == "always" || cfg.UpdateInterval == "0" {
+		return true
+	}
+	if cfg.LastUpdateCheck == "" {
+		return true
+	}
+	lastCheck, err := time.Parse(time.RFC3339, cfg.LastUpdateCheck)
+	if err != nil {
+		return true
+	}
+	var interval time.Duration
+	switch strings.ToLower(cfg.UpdateInterval) {
+	case "hourly", "1h":
+		interval = time.Hour
+	case "weekly", "7d", "week":
+		interval = 7 * 24 * time.Hour
+	case "daily", "1d", "24h", "day":
+		fallthrough
+	default:
+		interval = 24 * time.Hour
+	}
+	return time.Since(lastCheck) >= interval
 }

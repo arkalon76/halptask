@@ -62,6 +62,11 @@ func (cm *ConfigModal) RefreshItems() {
 		checkUpdatesVal = "[✓] Enabled"
 	}
 
+	updateIntervalVal := cm.Config.UpdateInterval
+	if updateIntervalVal == "" {
+		updateIntervalVal = "daily"
+	}
+
 	showWhichKeyVal := "[ ] Disabled"
 	if cm.Config.ShowWhichKey {
 		showWhichKeyVal = "[✓] Enabled"
@@ -76,7 +81,8 @@ func (cm *ConfigModal) RefreshItems() {
 		// General
 		{Category: "General", Key: "auto_save", Label: "Auto-Save Changes", Type: ConfigItemBool, Value: autoSaveVal, Description: "Automatically save changes to data file on edits"},
 		{Category: "General", Key: "default_item_type", Label: "Default Item Type", Type: ConfigItemEnum, Value: cm.Config.DefaultItemType, Options: []string{"bullet", "task"}, Description: "Default type ('bullet' or 'task') for new nodes"},
-		{Category: "General", Key: "check_updates", Label: "Check for Updates", Type: ConfigItemBool, Value: checkUpdatesVal, Description: "Check GitHub releases for updates on startup"},
+		{Category: "General", Key: "check_updates", Label: "Check for Updates", Type: ConfigItemBool, Value: checkUpdatesVal, Description: "Check GitHub releases for updates"},
+		{Category: "General", Key: "update_interval", Label: "Update Frequency", Type: ConfigItemEnum, Value: updateIntervalVal, Options: []string{"daily", "always", "weekly", "never"}, Description: "Frequency to check for updates (daily, always, weekly, never)"},
 
 		// UI & Theme
 		{Category: "UI & Appearance", Key: "theme", Label: "Color Theme", Type: ConfigItemEnum, Value: cm.Config.Theme, Options: config.AvailableThemes, Description: "Active visual theme palette"},
@@ -153,9 +159,29 @@ func (cm *ConfigModal) activateItem(idx int, dir int) (bool, string, bool) {
 		cm.Config.CheckUpdates = !cm.Config.CheckUpdates
 		if cm.Config.CheckUpdates {
 			statusMsg = "Check Updates ENABLED"
+			if strings.ToLower(cm.Config.UpdateInterval) == "never" || strings.ToLower(cm.Config.UpdateInterval) == "off" {
+				cm.Config.UpdateInterval = "daily"
+			}
 		} else {
 			statusMsg = "Check Updates DISABLED"
 		}
+	case "update_interval":
+		opts := []string{"daily", "always", "weekly", "never"}
+		currIdx := 0
+		for i, opt := range opts {
+			if opt == strings.ToLower(cm.Config.UpdateInterval) {
+				currIdx = i
+				break
+			}
+		}
+		nextIdx := (currIdx + dir + len(opts)) % len(opts)
+		cm.Config.UpdateInterval = opts[nextIdx]
+		if strings.ToLower(cm.Config.UpdateInterval) == "never" {
+			cm.Config.CheckUpdates = false
+		} else {
+			cm.Config.CheckUpdates = true
+		}
+		statusMsg = fmt.Sprintf("Update frequency set to: %s", cm.Config.UpdateInterval)
 	case "default_item_type":
 		if cm.Config.DefaultItemType == "task" {
 			cm.Config.DefaultItemType = "bullet"

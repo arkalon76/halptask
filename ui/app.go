@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -314,7 +315,7 @@ func (m *AppModel) removeNewItem() {
 }
 
 func (m AppModel) Init() tea.Cmd {
-	if m.Config != nil && m.Config.CheckUpdates {
+	if config.ShouldCheckForUpdate(m.Config) {
 		return checkUpdateCmd(m.Version, m.Config.GithubRepo)
 	}
 	return nil
@@ -326,6 +327,10 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case VersionCheckMsg:
+		if m.Config != nil {
+			m.Config.LastUpdateCheck = time.Now().Format(time.RFC3339)
+			_ = config.SaveConfig(m.Config)
+		}
 		if msg.Err == nil && msg.Info != nil {
 			m.UpdateInfo = msg.Info
 			if msg.Info.NewRepo != "" && m.Config != nil && msg.Info.NewRepo != m.Config.GithubRepo {
@@ -1336,6 +1341,57 @@ func (m *AppModel) saveFile() error {
 	return nil
 }
 
+func (m AppModel) renderTitleBar() string {
+	ver := m.Version
+	if ver != "" && !strings.HasPrefix(ver, "v") {
+		ver = "v" + ver
+	}
+
+	var candidates []string
+
+	if m.UpdateAvailable && m.UpdateInfo != nil && m.UpdateInfo.Version != "" {
+		latest := m.UpdateInfo.Version
+		if !strings.HasPrefix(latest, "v") {
+			latest = "v" + latest
+		}
+		candidates = append(candidates,
+			fmt.Sprintf(" HALPTASK %s (%s available)  •  Bullet & Task Manager ", ver, latest),
+			fmt.Sprintf(" HALPTASK %s (update: %s)  •  Bullet & Task Manager ", ver, latest),
+			fmt.Sprintf(" HALPTASK %s  •  Bullet & Task Manager ", ver),
+			fmt.Sprintf(" HALPTASK %s ", ver),
+			" HALPTASK ",
+		)
+	} else if ver != "" {
+		candidates = append(candidates,
+			fmt.Sprintf(" HALPTASK %s  •  Bullet & Task Manager ", ver),
+			fmt.Sprintf(" HALPTASK %s ", ver),
+			" HALPTASK ",
+		)
+	} else {
+		candidates = append(candidates,
+			" HALPTASK  •  Bullet & Task Manager ",
+			" HALPTASK ",
+		)
+	}
+
+	titleText := candidates[len(candidates)-1]
+	for _, cand := range candidates {
+		if lipgloss.Width(cand) <= m.Width {
+			titleText = cand
+			break
+		}
+	}
+
+	headerStyle := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("#1a1b26")).
+		Background(lipgloss.Color("#7aa2f7")).
+		Width(m.Width).
+		Align(lipgloss.Center)
+
+	return headerStyle.Render(titleText)
+}
+
 func (m AppModel) View() string {
 	if m.Width == 0 || m.Height == 0 {
 		return "Loading HalpTask..."
@@ -1407,14 +1463,7 @@ func (m AppModel) View() string {
 	}
 
 	// Normal View Layout: Header / Tree View / Text Input / WhichKey / Status Bar
-	headerStyle := lipgloss.NewStyle().
-		Bold(true).
-		Foreground(lipgloss.Color("#1a1b26")).
-		Background(lipgloss.Color("#7aa2f7")).
-		Width(m.Width).
-		Align(lipgloss.Center)
-
-	header := headerStyle.Render(" HALPTASK  •  Bullet & Task Manager ")
+	header := m.renderTitleBar()
 
 	m.TreeView.Tree = m.Tree
 	if m.Config != nil {

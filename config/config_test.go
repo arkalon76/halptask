@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func TestConfigDefaultsAndSave(t *testing.T) {
@@ -27,6 +28,12 @@ func TestConfigDefaultsAndSave(t *testing.T) {
 	if cfg.DefaultItemType != "bullet" {
 		t.Fatalf("expected default item type to be 'bullet', got %s", cfg.DefaultItemType)
 	}
+	if cfg.UpdateInterval != "daily" {
+		t.Fatalf("expected default update interval to be 'daily', got %s", cfg.UpdateInterval)
+	}
+	if !cfg.CheckUpdates {
+		t.Fatalf("expected default CheckUpdates to be true")
+	}
 	_ = configPath
 }
 
@@ -43,5 +50,45 @@ func TestDefaultItemTypeNormalization(t *testing.T) {
 	}
 	if cfg.DefaultItemType != "bullet" {
 		t.Fatalf("expected normalized 'bullet', got %s", cfg.DefaultItemType)
+	}
+}
+
+func TestShouldCheckForUpdate(t *testing.T) {
+	cfg := DefaultConfig()
+	// Initial state with empty LastUpdateCheck should check
+	if !ShouldCheckForUpdate(cfg) {
+		t.Fatalf("expected ShouldCheckForUpdate to be true initially")
+	}
+
+	// Set last check to 1 hour ago -> should NOT check for daily interval
+	cfg.LastUpdateCheck = time.Now().Add(-1 * time.Hour).Format(time.RFC3339)
+	if ShouldCheckForUpdate(cfg) {
+		t.Fatalf("expected ShouldCheckForUpdate to be false for check 1h ago with daily interval")
+	}
+
+	// Set last check to 25 hours ago -> SHOULD check for daily interval
+	cfg.LastUpdateCheck = time.Now().Add(-25 * time.Hour).Format(time.RFC3339)
+	if !ShouldCheckForUpdate(cfg) {
+		t.Fatalf("expected ShouldCheckForUpdate to be true for check 25h ago with daily interval")
+	}
+
+	// CheckUpdates disabled -> should NOT check
+	cfg.CheckUpdates = false
+	if ShouldCheckForUpdate(cfg) {
+		t.Fatalf("expected ShouldCheckForUpdate to be false when CheckUpdates is false")
+	}
+
+	// CheckUpdates re-enabled, interval set to "always" -> should check regardless of timestamp
+	cfg.CheckUpdates = true
+	cfg.UpdateInterval = "always"
+	cfg.LastUpdateCheck = time.Now().Format(time.RFC3339)
+	if !ShouldCheckForUpdate(cfg) {
+		t.Fatalf("expected ShouldCheckForUpdate to be true when UpdateInterval is 'always'")
+	}
+
+	// Interval set to "never" -> should NOT check
+	cfg.UpdateInterval = "never"
+	if ShouldCheckForUpdate(cfg) {
+		t.Fatalf("expected ShouldCheckForUpdate to be false when UpdateInterval is 'never'")
 	}
 }

@@ -8,6 +8,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/kenth/halptask/config"
 	"github.com/kenth/halptask/model"
+	"github.com/kenth/halptask/updater"
 )
 
 func TestNormalModeTaskShortcuts(t *testing.T) {
@@ -557,4 +558,40 @@ func TestExistingItemEscapeNotDeleted(t *testing.T) {
 		t.Fatalf("expected existing item text to be intact, got %q", app.Tree.Roots[0].Text)
 	}
 }
+
+func TestTitleBarVersionAndSpace(t *testing.T) {
+	app := AppModel{
+		Version: "0.0.4",
+		Width:   80,
+	}
+
+	// 1. Standard width without update -> title bar includes current version v0.0.4
+	renderedBar := app.renderTitleBar()
+	if !strings.Contains(renderedBar, "v0.0.4") {
+		t.Fatalf("expected title bar to contain current version 'v0.0.4', got %q", renderedBar)
+	}
+
+	// 2. Wide terminal width (80) with update available -> includes current version AND update version
+	app.UpdateAvailable = true
+	app.UpdateInfo = &updater.ReleaseInfo{Version: "0.0.5"}
+
+	renderedBarWithUpdate := app.renderTitleBar()
+	if !strings.Contains(renderedBarWithUpdate, "v0.0.4") {
+		t.Fatalf("expected title bar to contain current version 'v0.0.4', got %q", renderedBarWithUpdate)
+	}
+	if !strings.Contains(renderedBarWithUpdate, "v0.0.5") {
+		t.Fatalf("expected title bar to contain update version 'v0.0.5' when space is available, got %q", renderedBarWithUpdate)
+	}
+
+	// 3. Narrow terminal width (48) with update available -> space is limited, so update version is omitted to fit available space
+	app.Width = 48
+	renderedNarrow := app.renderTitleBar()
+	if !strings.Contains(renderedNarrow, "v0.0.4") {
+		t.Fatalf("expected title bar to retain current version 'v0.0.4' under narrow width, got %q", renderedNarrow)
+	}
+	if strings.Contains(renderedNarrow, "v0.0.5") {
+		t.Fatalf("expected title bar to omit update version 'v0.0.5' when space is insufficient, got %q", renderedNarrow)
+	}
+}
+
 
