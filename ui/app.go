@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -38,6 +39,7 @@ type PromptType int
 const (
 	PromptPassphraseLoad PromptType = iota
 	PromptPassphraseSet
+	PromptConfirmSaveNewItem
 )
 
 type VersionCheckMsg struct {
@@ -106,6 +108,9 @@ type AppModel struct {
 	UpdateInfo      *updater.ReleaseInfo
 	UpdateAvailable bool
 	IsUpdating      bool
+
+	EditingNewItem bool
+	NewItemID      string
 }
 
 func (m *AppModel) getVisibleItems() []model.VisibleItem {
@@ -281,6 +286,8 @@ func (m *AppModel) prepareNewItemInsert(newItem *model.Item) {
 	}
 	m.ensureValidCursor()
 	m.Mode = ModeInsert
+	m.EditingNewItem = true
+	m.NewItemID = newItem.ID
 	if m.isDefaultTask() {
 		m.TextInput.Placeholder = "Enter task text..."
 	} else {
@@ -288,6 +295,22 @@ func (m *AppModel) prepareNewItemInsert(newItem *model.Item) {
 	}
 	m.TextInput.SetValue("")
 	m.TextInput.Focus()
+}
+
+func (m *AppModel) removeNewItem() {
+	targetID := m.NewItemID
+	if targetID == "" {
+		targetID = m.SelectedID
+	}
+	if len(m.UndoStack) > 0 {
+		m.Tree = m.UndoStack[len(m.UndoStack)-1]
+		m.UndoStack = m.UndoStack[:len(m.UndoStack)-1]
+	} else if targetID != "" {
+		m.Tree.Delete(targetID)
+	}
+	m.EditingNewItem = false
+	m.NewItemID = ""
+	m.ensureValidCursor()
 }
 
 func (m AppModel) Init() tea.Cmd {
@@ -741,6 +764,8 @@ func (m AppModel) updateNormal(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if item != nil {
 				m.pushUndo()
 				m.Mode = ModeInsert
+				m.EditingNewItem = false
+				m.NewItemID = ""
 				if item.IsTask {
 					m.TextInput.Placeholder = "Enter task text..."
 				} else {
@@ -759,6 +784,8 @@ func (m AppModel) updateNormal(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if item != nil {
 				m.pushUndo()
 				m.Mode = ModeInsert
+				m.EditingNewItem = false
+				m.NewItemID = ""
 				if item.IsTask {
 					m.TextInput.Placeholder = "Enter task text..."
 				} else {
@@ -888,6 +915,8 @@ func (m *AppModel) tryExecuteKeyBinding(keys []string) (bool, tea.Cmd) {
 			if item != nil {
 				m.pushUndo()
 				m.Mode = ModeInsert
+				m.EditingNewItem = false
+				m.NewItemID = ""
 				if item.IsTask {
 					m.TextInput.Placeholder = "Enter task text..."
 				} else {
@@ -895,7 +924,7 @@ func (m *AppModel) tryExecuteKeyBinding(keys []string) (bool, tea.Cmd) {
 				}
 				m.TextInput.SetValue(item.Text)
 				m.TextInput.Focus()
-				return true, nil
+				return true, textinput.Blink
 			}
 		}
 	case "  b d": // Space > Bullets > Delete
@@ -1136,10 +1165,24 @@ func (m AppModel) updateInsert(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.PendingAutoSave = true
 			}
 		}
+		m.EditingNewItem = false
+		m.NewItemID = ""
 		m.Mode = ModeNormal
 		m.TextInput.Blur()
 		return m, nil
 	case "esc":
+		if m.EditingNewItem {
+			typedCount := utf8.RuneCountInString(m.TextInput.Value())
+			if typedCount > 5 {
+				m.Mode = ModePrompt
+				m.PromptType = PromptConfirmSaveNewItem
+				return m, nil
+			}
+			m.removeNewItem()
+			m.Mode = ModeNormal
+			m.TextInput.Blur()
+			return m, nil
+		}
 		m.Mode = ModeNormal
 		m.TextInput.Blur()
 		return m, nil
@@ -1186,6 +1229,50 @@ func (m AppModel) updateSearch(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m AppModel) updatePrompt(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if m.PromptType == PromptConfirmSaveNewItem {
+		switch msg.String() {
+		case "y", "Y", "enter":
+			text := strings.TrimSpace(m.TextInput.Value())
+			itemTypeStr := "bullet"
+			if m.SelectedID != "" {
+				item := m.Tree.FindItem(m.SelectedID)
+				if item != nil {
+					item.Text = text
+					if item.IsTask {
+						itemTypeStr = "task"
+					}
+					m.PendingAutoSave = true
+				}
+			}
+			m.EditingNewItem = false
+			m.NewItemID = ""
+			m.Mode = ModeNormal
+			m.TextInput.Blur()
+			m.ensureValidCursor()
+			m.StatusMsg = fmt.Sprintf("Saved %s", itemTypeStr)
+			return m, nil
+		case "n", "N":
+			itemTypeStr := "bullet"
+			if m.SelectedID != "" {
+				if item := m.Tree.FindItem(m.SelectedID); item != nil && item.IsTask {
+					itemTypeStr = "task"
+				}
+			}
+			m.removeNewItem()
+			m.Mode = ModeNormal
+			m.TextInput.Blur()
+			m.ensureValidCursor()
+			m.StatusMsg = fmt.Sprintf("Discarded %s", itemTypeStr)
+			return m, nil
+		case "esc":
+			m.Mode = ModeInsert
+			m.TextInput.Focus()
+			return m, textinput.Blink
+		default:
+			return m, nil
+		}
+	}
+
 	var cmd tea.Cmd
 	switch msg.String() {
 	case "enter":
@@ -1255,6 +1342,37 @@ func (m AppModel) View() string {
 	}
 
 	if m.Mode == ModePrompt {
+		if m.PromptType == PromptConfirmSaveNewItem {
+			promptStyle := lipgloss.NewStyle().
+				Border(lipgloss.DoubleBorder()).
+				BorderForeground(lipgloss.Color("#e0af68")).
+				Padding(1, 3).
+				Width(56)
+
+			itemTypeStr := "bullet"
+			if m.SelectedID != "" {
+				if item := m.Tree.FindItem(m.SelectedID); item != nil && item.IsTask {
+					itemTypeStr = "task"
+				}
+			}
+
+			title := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#7aa2f7")).Render(fmt.Sprintf("❓ Save new %s?", itemTypeStr))
+
+			previewText := m.TextInput.Value()
+			if utf8.RuneCountInString(previewText) > 35 {
+				runes := []rune(previewText)
+				previewText = string(runes[:32]) + "..."
+			}
+			textPreview := lipgloss.NewStyle().Italic(true).Foreground(lipgloss.Color("#c0caf5")).Render(fmt.Sprintf("%q", previewText))
+
+			msg := fmt.Sprintf("Do you want to save this %s?\n\nItem: %s", itemTypeStr, textPreview)
+
+			help := lipgloss.NewStyle().Foreground(lipgloss.Color("#565f89")).Render("[y/Enter] Save   [n] Discard   [Esc] Cancel")
+
+			content := fmt.Sprintf("%s\n\n%s\n\n%s", title, msg, help)
+			return lipgloss.Place(m.Width, m.Height, lipgloss.Center, lipgloss.Center, promptStyle.Render(content))
+		}
+
 		promptStyle := lipgloss.NewStyle().
 			Border(lipgloss.DoubleBorder()).
 			BorderForeground(lipgloss.Color("#f7768e")).

@@ -408,3 +408,153 @@ func TestLeaderConfigSequence(t *testing.T) {
 	}
 }
 
+func TestCancelNewItemEscape(t *testing.T) {
+	cfg := config.DefaultConfig()
+	tree := model.NewTree()
+	item1 := tree.InsertBelow("", "Initial Bullet")
+
+	app := AppModel{
+		Config:    cfg,
+		Tree:      tree,
+		Mode:      ModeNormal,
+		TextInput: textinput.New(),
+		WhichKey:  NewWhichKeyModel(),
+		QuickHelp: NewQuickHelp(),
+		TreeView:  NewTreeView(),
+		StatusBar: NewStatusBar(),
+		HelpModal: NewHelpModal(),
+	}
+	app.ensureValidCursor()
+	app.SelectedID = item1.ID
+
+	// 1. Create new item via 'oo' with 0 chars typed, press Esc -> should remove new item completely
+	m, _ := app.updateNormal(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'o'}})
+	app = m.(AppModel)
+	m, _ = app.updateNormal(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'o'}})
+	app = m.(AppModel)
+
+	if app.Mode != ModeInsert {
+		t.Fatalf("expected ModeInsert after 'oo', got %v", app.Mode)
+	}
+	if len(app.Tree.Roots) != 2 {
+		t.Fatalf("expected 2 roots after 'oo', got %d", len(app.Tree.Roots))
+	}
+
+	// Press Esc with 0 chars typed
+	m, _ = app.updateInsert(tea.KeyMsg{Type: tea.KeyEsc})
+	app = m.(AppModel)
+	if app.Mode != ModeNormal {
+		t.Fatalf("expected ModeNormal after Esc, got %v", app.Mode)
+	}
+	if len(app.Tree.Roots) != 1 {
+		t.Fatalf("expected new empty bullet to be removed after Esc (1 root left), got %d", len(app.Tree.Roots))
+	}
+
+	// 2. Create new item via 'oo' with 3 chars typed (<= 5), press Esc -> should remove new item
+	m, _ = app.updateNormal(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'o'}})
+	app = m.(AppModel)
+	m, _ = app.updateNormal(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'o'}})
+	app = m.(AppModel)
+	app.TextInput.SetValue("abc")
+
+	m, _ = app.updateInsert(tea.KeyMsg{Type: tea.KeyEsc})
+	app = m.(AppModel)
+	if app.Mode != ModeNormal {
+		t.Fatalf("expected ModeNormal after Esc on <= 5 chars, got %v", app.Mode)
+	}
+	if len(app.Tree.Roots) != 1 {
+		t.Fatalf("expected new bullet with 3 chars to be removed after Esc, got %d", len(app.Tree.Roots))
+	}
+
+	// 3. Create new item via 'oo' with 6 chars typed (> 5), press Esc -> prompt user to save
+	m, _ = app.updateNormal(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'o'}})
+	app = m.(AppModel)
+	m, _ = app.updateNormal(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'o'}})
+	app = m.(AppModel)
+	app.TextInput.SetValue("123456")
+
+	m, _ = app.updateInsert(tea.KeyMsg{Type: tea.KeyEsc})
+	app = m.(AppModel)
+	if app.Mode != ModePrompt || app.PromptType != PromptConfirmSaveNewItem {
+		t.Fatalf("expected ModePrompt with PromptConfirmSaveNewItem after Esc on > 5 chars, got mode=%v prompt=%v", app.Mode, app.PromptType)
+	}
+
+	// Press 'y' to save
+	m, _ = app.updatePrompt(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'y'}})
+	app = m.(AppModel)
+	if app.Mode != ModeNormal {
+		t.Fatalf("expected ModeNormal after pressing 'y' in save prompt, got %v", app.Mode)
+	}
+	if len(app.Tree.Roots) != 2 {
+		t.Fatalf("expected 2 roots after saving item, got %d", len(app.Tree.Roots))
+	}
+	savedItem := app.Tree.Roots[1]
+	if savedItem.Text != "123456" {
+		t.Fatalf("expected saved item text to be '123456', got %q", savedItem.Text)
+	}
+
+	// 4. Create new item with > 5 chars, press Esc, press 'n' to discard
+	app.SelectedID = item1.ID
+	m, _ = app.updateNormal(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'o'}})
+	app = m.(AppModel)
+	m, _ = app.updateNormal(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'o'}})
+	app = m.(AppModel)
+	app.TextInput.SetValue("Discard me please")
+
+	m, _ = app.updateInsert(tea.KeyMsg{Type: tea.KeyEsc})
+	app = m.(AppModel)
+	if app.Mode != ModePrompt || app.PromptType != PromptConfirmSaveNewItem {
+		t.Fatalf("expected prompt mode on > 5 chars Esc")
+	}
+
+	// Press 'n' to discard
+	m, _ = app.updatePrompt(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'n'}})
+	app = m.(AppModel)
+	if app.Mode != ModeNormal {
+		t.Fatalf("expected ModeNormal after 'n'")
+	}
+	if len(app.Tree.Roots) != 2 { // should still be 2 roots (initial + saved item)
+		t.Fatalf("expected discarded item to be removed (2 roots), got %d", len(app.Tree.Roots))
+	}
+}
+
+func TestExistingItemEscapeNotDeleted(t *testing.T) {
+	cfg := config.DefaultConfig()
+	tree := model.NewTree()
+	item := tree.InsertBelow("", "Existing Item Text")
+
+	app := AppModel{
+		Config:    cfg,
+		Tree:      tree,
+		Mode:      ModeNormal,
+		TextInput: textinput.New(),
+		WhichKey:  NewWhichKeyModel(),
+		QuickHelp: NewQuickHelp(),
+		TreeView:  NewTreeView(),
+		StatusBar: NewStatusBar(),
+		HelpModal: NewHelpModal(),
+	}
+	app.ensureValidCursor()
+	app.SelectedID = item.ID
+
+	// Press 'e' to edit existing item
+	m, _ := app.updateNormal(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'e'}})
+	app = m.(AppModel)
+	if app.Mode != ModeInsert {
+		t.Fatalf("expected ModeInsert after 'e'")
+	}
+
+	// Press Esc -> should NOT delete existing item
+	m, _ = app.updateInsert(tea.KeyMsg{Type: tea.KeyEsc})
+	app = m.(AppModel)
+	if app.Mode != ModeNormal {
+		t.Fatalf("expected ModeNormal after Esc")
+	}
+	if len(app.Tree.Roots) != 1 {
+		t.Fatalf("expected existing item to remain in tree, got %d roots", len(app.Tree.Roots))
+	}
+	if app.Tree.Roots[0].Text != "Existing Item Text" {
+		t.Fatalf("expected existing item text to be intact, got %q", app.Tree.Roots[0].Text)
+	}
+}
+
