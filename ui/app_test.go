@@ -607,36 +607,36 @@ func TestExistingItemEscapeNotDeleted(t *testing.T) {
 
 func TestTitleBarVersionAndSpace(t *testing.T) {
 	app := AppModel{
-		Version: "0.0.4",
+		Version: "0.0.5",
 		Width:   80,
 	}
 
-	// 1. Standard width without update -> title bar includes current version v0.0.4
+	// 1. Standard width without update -> title bar includes current version v0.0.5
 	renderedBar := app.renderTitleBar()
-	if !strings.Contains(renderedBar, "v0.0.4") {
-		t.Fatalf("expected title bar to contain current version 'v0.0.4', got %q", renderedBar)
+	if !strings.Contains(renderedBar, "v0.0.5") {
+		t.Fatalf("expected title bar to contain current version 'v0.0.5', got %q", renderedBar)
 	}
 
 	// 2. Wide terminal width (80) with update available -> includes current version AND update version
 	app.UpdateAvailable = true
-	app.UpdateInfo = &updater.ReleaseInfo{Version: "0.0.5"}
+	app.UpdateInfo = &updater.ReleaseInfo{Version: "0.0.6"}
 
 	renderedBarWithUpdate := app.renderTitleBar()
-	if !strings.Contains(renderedBarWithUpdate, "v0.0.4") {
-		t.Fatalf("expected title bar to contain current version 'v0.0.4', got %q", renderedBarWithUpdate)
-	}
 	if !strings.Contains(renderedBarWithUpdate, "v0.0.5") {
-		t.Fatalf("expected title bar to contain update version 'v0.0.5' when space is available, got %q", renderedBarWithUpdate)
+		t.Fatalf("expected title bar to contain current version 'v0.0.5', got %q", renderedBarWithUpdate)
+	}
+	if !strings.Contains(renderedBarWithUpdate, "v0.0.6") {
+		t.Fatalf("expected title bar to contain update version 'v0.0.6' when space is available, got %q", renderedBarWithUpdate)
 	}
 
 	// 3. Narrow terminal width (48) with update available -> space is limited, so update version is omitted to fit available space
 	app.Width = 48
 	renderedNarrow := app.renderTitleBar()
-	if !strings.Contains(renderedNarrow, "v0.0.4") {
-		t.Fatalf("expected title bar to retain current version 'v0.0.4' under narrow width, got %q", renderedNarrow)
+	if !strings.Contains(renderedNarrow, "v0.0.5") {
+		t.Fatalf("expected title bar to retain current version 'v0.0.5' under narrow width, got %q", renderedNarrow)
 	}
-	if strings.Contains(renderedNarrow, "v0.0.5") {
-		t.Fatalf("expected title bar to omit update version 'v0.0.5' when space is insufficient, got %q", renderedNarrow)
+	if strings.Contains(renderedNarrow, "v0.0.6") {
+		t.Fatalf("expected title bar to omit update version 'v0.0.6' when space is insufficient, got %q", renderedNarrow)
 	}
 }
 
