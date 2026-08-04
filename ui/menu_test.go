@@ -130,6 +130,30 @@ func TestMenuLayoutConsistency(t *testing.T) {
 			}
 		}
 	})
+
+	// 6. Test DashboardView
+	t.Run("DashboardView", func(t *testing.T) {
+		dbView := ui.NewDashboardView()
+		for _, w := range testWidths {
+			dbWidth := int(float64(w) * 0.35)
+			if dbWidth > 42 {
+				dbWidth = 42
+			}
+			if dbWidth < 20 {
+				dbWidth = 20
+			}
+			dbView.Width = dbWidth
+			dbView.Height = 20
+			rendered := dbView.Render(sampleTree, tagConfigs)
+			lines := strings.Split(rendered, "\n")
+			for idx, line := range lines {
+				visWidth := lipgloss.Width(line)
+				if visWidth > dbWidth {
+					t.Errorf("DashboardView line %d exceeds width %d (got %d): %q", idx, dbWidth, visWidth, line)
+				}
+			}
+		}
+	})
 }
 
 // PrintMenuSnapshots prints a visual snapshot of each menu layout for developer inspection.

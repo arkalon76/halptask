@@ -695,3 +695,46 @@ func (t *Tree) SearchByTag(tag string) []string {
 	recurse(t.Roots)
 	return matchedIDs
 }
+
+type TaskWithContext struct {
+	Item       *Item
+	ParentItem *Item
+	ParentPath string
+}
+
+// GetInProgressTasks returns all items in the tree that have Status == StatusInProgress, along with parent context.
+func (t *Tree) GetInProgressTasks() []TaskWithContext {
+	t.SetParents()
+	var result []TaskWithContext
+
+	var recurse func(items []*Item)
+	recurse = func(items []*Item) {
+		for _, item := range items {
+			if item.IsTask && item.Status == StatusInProgress {
+				parentPath := ""
+				if item.Parent != nil {
+					var ancestorTexts []string
+					curr := item.Parent
+					for curr != nil {
+						if curr.Text != "" {
+							ancestorTexts = append([]string{curr.Text}, ancestorTexts...)
+						}
+						curr = curr.Parent
+					}
+					parentPath = strings.Join(ancestorTexts, " > ")
+				}
+				result = append(result, TaskWithContext{
+					Item:       item,
+					ParentItem: item.Parent,
+					ParentPath: parentPath,
+				})
+			}
+			if len(item.Children) > 0 {
+				recurse(item.Children)
+			}
+		}
+	}
+	recurse(t.Roots)
+	return result
+}
+

@@ -26,6 +26,7 @@ type Config struct {
 	IndentSpaces    int         `yaml:"indent_spaces"`
 	LeaderKey       string      `yaml:"leader_key"`
 	ShowWhichKey    bool        `yaml:"show_which_key"`
+	ShowDashboard   bool        `yaml:"show_dashboard"`
 	Theme           string      `yaml:"theme"`
 	DefaultItemType string      `yaml:"default_item_type"` // "bullet" or "task"
 	Tags            []TagConfig `yaml:"tags,omitempty"`
@@ -71,6 +72,7 @@ func DefaultConfig() *Config {
 		IndentSpaces:    2,
 		LeaderKey:       " ",
 		ShowWhichKey:    true,
+		ShowDashboard:   true,
 		Theme:           "default",
 		DefaultItemType: "bullet",
 		Tags:            GetDefaultTagConfigs(),

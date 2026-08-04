@@ -72,6 +72,11 @@ func (cm *ConfigModal) RefreshItems() {
 		showWhichKeyVal = "[✓] Enabled"
 	}
 
+	showDashboardVal := "[ ] Disabled"
+	if cm.Config.ShowDashboard {
+		showDashboardVal = "[✓] Enabled"
+	}
+
 	encryptedVal := "[ ] Disabled 🔓"
 	if cm.Config.Encrypted {
 		encryptedVal = "[✓] Enabled 🔒"
@@ -87,6 +92,7 @@ func (cm *ConfigModal) RefreshItems() {
 		// UI & Theme
 		{Category: "UI & Appearance", Key: "theme", Label: "Color Theme", Type: ConfigItemEnum, Value: cm.Config.Theme, Options: config.AvailableThemes, Description: "Active visual theme palette"},
 		{Category: "UI & Appearance", Key: "show_which_key", Label: "WhichKey Popup", Type: ConfigItemBool, Value: showWhichKeyVal, Description: "Display WhichKey popup menu on leader key"},
+		{Category: "UI & Appearance", Key: "show_dashboard", Label: "Show Dashboard Pane", Type: ConfigItemBool, Value: showDashboardVal, Description: "Display side overview dashboard panel (toggle with <space> d)"},
 		{Category: "UI & Appearance", Key: "indent_spaces", Label: "Indentation Spaces", Type: ConfigItemEnum, Value: fmt.Sprintf("%d", cm.Config.IndentSpaces), Options: []string{"2", "4", "8"}, Description: "Number of spaces per indentation level"},
 
 		// Storage & Security
@@ -198,6 +204,13 @@ func (cm *ConfigModal) activateItem(idx int, dir int) (bool, string, bool) {
 			statusMsg = "WhichKey Popup ENABLED"
 		} else {
 			statusMsg = "WhichKey Popup DISABLED"
+		}
+	case "show_dashboard":
+		cm.Config.ShowDashboard = !cm.Config.ShowDashboard
+		if cm.Config.ShowDashboard {
+			statusMsg = "Dashboard pane ENABLED"
+		} else {
+			statusMsg = "Dashboard pane DISABLED"
 		}
 	case "indent_spaces":
 		if cm.Config.IndentSpaces == 2 {

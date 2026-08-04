@@ -43,11 +43,13 @@ func GetAllKeyBindings() []KeyBinding {
 		{Keys: []string{" ", "c", "c"}, KeyString: "c", Label: "open config dashboard", Category: "Config"},
 		{Keys: []string{" ", "c", "a"}, KeyString: "a", Label: "toggle auto-save", Category: "Config"},
 		{Keys: []string{" ", "c", "d"}, KeyString: "d", Label: "toggle default item type", Category: "Config"},
+		{Keys: []string{" ", "c", "D"}, KeyString: "D", Label: "toggle dashboard pane", Category: "Config"},
 		{Keys: []string{" ", "c", "t"}, KeyString: "t", Label: "cycle visual theme", Category: "Config"},
 		{Keys: []string{" ", "c", "w"}, KeyString: "w", Label: "toggle whichkey popup", Category: "Config"},
 		{Keys: []string{" ", "c", "e"}, KeyString: "e", Label: "open config.yaml ($EDITOR)", Category: "Config"},
 
 		// Leader File & System
+		{Keys: []string{" ", "d"}, KeyString: "d", Label: "toggle overview dashboard", Category: "Leader"},
 		{Keys: []string{" ", "w"}, KeyString: "w", Label: "save file", Category: "Leader"},
 		{Keys: []string{" ", "s"}, KeyString: "s", Label: "save file", Category: "Leader"},
 		{Keys: []string{" ", "e", "e"}, KeyString: "e", Label: "toggle encryption", Category: "Encrypt"},

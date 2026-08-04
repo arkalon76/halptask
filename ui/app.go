@@ -385,6 +385,10 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		newModel = m
 
 	case tea.KeyMsg:
+		if msg.String() == "ctrl+c" {
+			_ = m.saveFile()
+			return m, tea.Quit
+		}
 		switch m.Mode {
 		case ModeNormal:
 			newModel, cmd = m.updateNormal(msg)
@@ -577,8 +581,8 @@ func (m AppModel) updateNormal(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 
 		// Check if prefix keys still match any known command
-		title, options := m.WhichKey.GetOptions(GetAllKeyBindings())
-		if len(options) == 0 && title == "WhichKey" {
+		_, options := m.WhichKey.GetOptions(GetAllKeyBindings())
+		if len(options) == 0 {
 			m.WhichKey.Active = false
 			m.WhichKey.PrefixKeys = nil
 			m.KeyBuffer = ""
@@ -1052,6 +1056,18 @@ func (m *AppModel) tryExecuteKeyBinding(keys []string) (bool, tea.Cmd) {
 	case "  c d": // Toggle Default Item Type
 		m.toggleDefaultItemType()
 		return true, nil
+	case "  d", "  c D": // Toggle Overview Dashboard
+		if m.Config == nil {
+			m.Config = config.DefaultConfig()
+		}
+		m.Config.ShowDashboard = !m.Config.ShowDashboard
+		_ = config.SaveConfig(m.Config)
+		if m.Config.ShowDashboard {
+			m.StatusMsg = "Dashboard pane ENABLED"
+		} else {
+			m.StatusMsg = "Dashboard pane DISABLED"
+		}
+		return true, nil
 	case "  c t": // Cycle Visual Theme
 		if m.Config == nil {
 			m.Config = config.DefaultConfig()
@@ -1462,7 +1478,7 @@ func (m AppModel) View() string {
 		return lipgloss.Place(m.Width, m.Height, lipgloss.Center, lipgloss.Center, m.ConfigModal.Render(m.Width, m.Height))
 	}
 
-	// Normal View Layout: Header / Tree View / Text Input / WhichKey / Status Bar
+	// Normal View Layout: Header / Tree View (+ Dashboard) / Text Input / WhichKey / Status Bar
 	header := m.renderTitleBar()
 
 	m.TreeView.Tree = m.Tree
@@ -1471,7 +1487,65 @@ func (m AppModel) View() string {
 	}
 
 	visible := m.getVisibleItems()
-	treeContent := m.TreeView.Render(visible, m.CursorIndex, m.ScrollOffset)
+
+	// Calculate content height reserved for TreeView & Dashboard
+	reservedHeight := 3 // Header(1) + QuickHelp(1) + StatusBar(1)
+	if m.Mode == ModeInsert || m.Mode == ModeSearch {
+		reservedHeight += 3
+	}
+	if m.WhichKey.Active {
+		wkStr := m.WhichKey.Render(GetAllKeyBindings(), m.Width)
+		reservedHeight += strings.Count(wkStr, "\n") + 1
+	}
+
+	contentHeight := m.Height - reservedHeight
+	if contentHeight < 5 {
+		contentHeight = 5
+	}
+
+	var mainArea string
+	if m.Config != nil && m.Config.ShowDashboard && m.Width >= 50 {
+		dashWidth := int(float64(m.Width) * 0.35)
+		if dashWidth > 42 {
+			dashWidth = 42
+		}
+		if dashWidth < 26 {
+			dashWidth = 26
+		}
+		treeWidth := m.Width - dashWidth
+
+		treeInnerWidth := treeWidth - 2
+		treeInnerHeight := contentHeight - 2
+		if treeInnerWidth < 10 {
+			treeInnerWidth = 10
+		}
+		if treeInnerHeight < 1 {
+			treeInnerHeight = 1
+		}
+
+		m.TreeView.Width = treeInnerWidth
+		m.TreeView.Height = treeInnerHeight
+		rawTreeContent := m.TreeView.Render(visible, m.CursorIndex, m.ScrollOffset)
+
+		treePanelStyle := lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("#3b4261")).
+			Width(treeInnerWidth).
+			Height(treeInnerHeight)
+
+		treeContent := treePanelStyle.Render(rawTreeContent)
+
+		dbView := NewDashboardView()
+		dbView.Width = dashWidth
+		dbView.Height = contentHeight
+		dashContent := dbView.Render(m.Tree, m.Config.Tags)
+
+		mainArea = lipgloss.JoinHorizontal(lipgloss.Top, treeContent, dashContent)
+	} else {
+		m.TreeView.Width = m.Width
+		m.TreeView.Height = contentHeight
+		mainArea = m.TreeView.Render(visible, m.CursorIndex, m.ScrollOffset)
+	}
 
 	var midSection string
 	if m.Mode == ModeInsert {
@@ -1512,7 +1586,7 @@ func (m AppModel) View() string {
 
 	var viewParts []string
 	viewParts = append(viewParts, header)
-	viewParts = append(viewParts, treeContent)
+	viewParts = append(viewParts, mainArea)
 
 	if midSection != "" {
 		viewParts = append(viewParts, midSection)

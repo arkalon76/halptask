@@ -31,12 +31,31 @@ func NewTreeView() TreeView {
 }
 
 func (tv *TreeView) Render(visible []model.VisibleItem, cursorIndex int, scrollOffset int) string {
+	maxLines := tv.Height
+	if maxLines <= 0 {
+		maxLines = 20
+	}
+
 	if len(visible) == 0 {
 		emptyStyle := lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#565f89")).
-			Italic(true).
-			Padding(2, 4)
-		return emptyStyle.Render("No bullets yet. Press 'o' or '<space> b n' to create a bullet point!")
+			Italic(true)
+		msg := emptyStyle.Render("No bullets yet. Press 'o' or '<space> b n' to create!")
+		if tv.Width > 0 {
+			w := lipgloss.Width(msg)
+			if w < tv.Width {
+				msg = msg + strings.Repeat(" ", tv.Width-w)
+			} else {
+				msg = lipgloss.NewStyle().MaxWidth(tv.Width).Render(msg)
+			}
+			var lines []string
+			lines = append(lines, msg)
+			for len(lines) < maxLines {
+				lines = append(lines, strings.Repeat(" ", tv.Width))
+			}
+			return strings.Join(lines, "\n")
+		}
+		return msg
 	}
 
 	// Styles
@@ -48,6 +67,7 @@ func (tv *TreeView) Render(visible []model.VisibleItem, cursorIndex int, scrollO
 		Foreground(lipgloss.Color("#3b4261"))
 
 	foldIconStyle := lipgloss.NewStyle().
+		Bold(true).
 		Foreground(lipgloss.Color("#e0af68"))
 
 	// Status styles
@@ -86,11 +106,6 @@ func (tv *TreeView) Render(visible []model.VisibleItem, cursorIndex int, scrollO
 	var lines []string
 
 	// Determine render window bounds based on Height
-	maxLines := tv.Height
-	if maxLines <= 0 {
-		maxLines = 20
-	}
-
 	start := scrollOffset
 	end := scrollOffset + maxLines
 	if end > len(visible) {
@@ -172,6 +187,21 @@ func (tv *TreeView) Render(visible []model.VisibleItem, cursorIndex int, scrollO
 		}
 
 		lines = append(lines, lineContent)
+	}
+
+	// Pad all lines to tv.Width and fill up to maxLines when tv.Width > 0
+	if tv.Width > 0 {
+		for i, line := range lines {
+			w := lipgloss.Width(line)
+			if w < tv.Width {
+				lines[i] = line + strings.Repeat(" ", tv.Width-w)
+			} else if w > tv.Width {
+				lines[i] = lipgloss.NewStyle().MaxWidth(tv.Width).Render(line)
+			}
+		}
+		for len(lines) < maxLines {
+			lines = append(lines, strings.Repeat(" ", tv.Width))
+		}
 	}
 
 	return strings.Join(lines, "\n")
