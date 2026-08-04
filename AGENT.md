@@ -156,5 +156,8 @@ go fmt ./...
    - Run `go test ./ui/...` to verify that `TestNoKeybindingPrefixCollisions` passes cleanly without prefix collision errors.
 5. **Markdown Compatibility**:
    Maintain backwards compatibility with the Markdown storage format in [`model/storage.go`](file:///Users/kenth/code/halptask/model/storage.go). Avoid breaking standard Markdown parsing.
-6. **Verification Step**:
+6. **GitHub Wiki Maintenance Directive**:
+   - **CRITICAL**: Whenever adding, modifying, or removing features, keybindings, CLI flags, configuration options, or UI workflows, ALWAYS update the GitHub Wiki documentation files located in `wiki/` (`wiki/Home.md`, `wiki/Getting-Started.md`, `wiki/User-Personas-&-Workflows.md`, `wiki/Power-User-Guide.md`, `wiki/Configuration-&-Encryption-Security.md`, `wiki/Keybindings-Reference.md`, `wiki/Agent-Wiki-Maintenance-Guidelines.md`).
+   - Maintain image assets in `wiki/images/` and `docs/images/` to ensure visual screenshots match current application design.
+7. **Verification Step**:
    Before declaring a task resolved, ALWAYS run `go test ./...` and `go build -o halptask .` to ensure zero compilation or runtime regression errors.

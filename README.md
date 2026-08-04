@@ -44,13 +44,16 @@ irm https://raw.githubusercontent.com/arkalon76/halptask/main/scripts/install.ps
 
 ---
 
-## 📚 Documentation & Cheatsheet
+## 📚 Documentation & GitHub Wiki
 
-Detailed documentation and guides are available in the [`docs/`](docs/index.md) folder:
+Comprehensive guides and persona workflows are documented in our **[GitHub Wiki](wiki/Home.md)**:
 
-- **[Keybindings Cheatsheet](docs/cheatsheet.md)**: Full interactive Leader Key (`<space>`) map and Vim shortcuts.
-- **[Documentation Index](docs/index.md)**: Architecture, data persistence, and configuration guide.
-- **[Release Guide](docs/RELEASE.md)**: Instructions for the automated GoReleaser pipeline.
+- 🚀 **[Getting Started Guide](wiki/Getting-Started.md)**: 5-minute quickstart, installation, and core concepts.
+- 👥 **[User Personas & Workflows](wiki/User-Personas-&-Workflows.md)**: Tailored workflows for **Programmers**, **DevOps/SRE**, **Product Managers**, **Lawyers**, and **Knowledge Workers**.
+- ⚡ **[Power User Guide](wiki/Power-User-Guide.md)**: Vim motion combos, subtree hoisting (`ff`), tag inheritance, and shell integration.
+- 🔒 **[Configuration & Security](wiki/Configuration-&-Encryption-Security.md)**: Config options, theme palettes, and AES-256-GCM encryption architecture.
+- ⌨️ **[Keybindings Cheatsheet](wiki/Keybindings-Reference.md)**: Full interactive Leader Key (`<space>`) map and Vim shortcuts.
+- 🤖 **[Agent Maintenance Guidelines](wiki/Agent-Wiki-Maintenance-Guidelines.md)**: Protocols for future AI agents to maintain documentation.
 
 ---
 
