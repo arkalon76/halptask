@@ -162,15 +162,7 @@ func (t *Tree) InsertBelow(targetID, text string) *Item {
 		return newItem
 	}
 
-	// If target has children and is NOT folded, insert as first child of target
-	if len(target.Children) > 0 && !target.Folded {
-		target.Children = append([]*Item{newItem}, target.Children...)
-		newItem.Parent = target
-		t.SetParents()
-		return newItem
-	}
-
-	// Otherwise, insert as next sibling after target
+	// Insert as next sibling after target
 	if target.Parent == nil {
 		idx := -1
 		for i, r := range t.Roots {

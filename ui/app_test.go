@@ -220,6 +220,52 @@ func TestOpenAndChildShortcuts(t *testing.T) {
 	}
 }
 
+func TestInsertBelowOnTaskWithSubtasks(t *testing.T) {
+	cfg := config.DefaultConfig()
+	tree := model.NewTree()
+	mainTask := tree.InsertBelow("", "Main Task")
+	tree.AddChild(mainTask.ID, "Subtask 1")
+	tree.AddChild(mainTask.ID, "Subtask 2")
+	mainTask.Folded = false
+
+	if len(mainTask.Children) != 2 {
+		t.Fatalf("expected 2 subtasks, got %d", len(mainTask.Children))
+	}
+
+	app := AppModel{
+		Config:    cfg,
+		Tree:      tree,
+		Mode:      ModeNormal,
+		TextInput: textinput.New(),
+		WhichKey:  NewWhichKeyModel(),
+		QuickHelp: NewQuickHelp(),
+		TreeView:  NewTreeView(),
+		StatusBar: NewStatusBar(),
+		HelpModal: NewHelpModal(),
+	}
+
+	// Highlight main task and press 'oo'
+	app.SelectedID = mainTask.ID
+	app.Mode = ModeNormal
+
+	m, _ := app.updateNormal(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'o'}})
+	app = m.(AppModel)
+	m, _ = app.updateNormal(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'o'}})
+	app = m.(AppModel)
+
+	if app.Mode != ModeInsert {
+		t.Fatalf("expected insert mode after 'oo', got mode=%v", app.Mode)
+	}
+
+	// Root should now have 2 items (Main Task, New Task), and Main Task should still have 2 subtasks
+	if len(app.Tree.Roots) != 2 {
+		t.Fatalf("expected 2 root items at main task level after 'oo', got %d", len(app.Tree.Roots))
+	}
+	if len(mainTask.Children) != 2 {
+		t.Fatalf("expected mainTask to still have 2 children, got %d", len(mainTask.Children))
+	}
+}
+
 func TestTagPickerAutoSave(t *testing.T) {
 	tmpDir := t.TempDir()
 	dataFile := tmpDir + "/tasks.txt"
