@@ -8,6 +8,22 @@ A high-performance, keyboard-driven Terminal User Interface (TUI) bullet point a
 
 ---
 
+## 📸 Screenshots & Showcase
+
+<p align="center">
+  <img src="docs/images/halptask_main.jpg" alt="HalpTask Main TUI View" width="850"/>
+</p>
+
+### ⌨️ WhichKey Leader Popup & Config Dashboard
+
+<p align="center">
+  <img src="docs/images/halptask_whichkey.jpg" alt="WhichKey Leader Menu" width="415"/>
+  &nbsp;
+  <img src="docs/images/halptask_config.jpg" alt="Interactive Config Dashboard" width="415"/>
+</p>
+
+---
+
 ## ⚡ Quick Install (macOS, Linux & Windows)
 
 > [!WARNING]
