@@ -9,7 +9,7 @@ Welcome to the HalpTask documentation!
 3. **Architecture & Design**:
    - `config/`: Configuration loader and YAML parser (`~/.config/halptask/config.yaml`).
    - `model/`: Hierarchical tree model, Markdown parser/serializer, and AES-256-GCM encryption engine.
-   - `ui/`: Lip Gloss styled components (WhichKey popup, TreeView, StatusBar, HelpModal) and Bubble Tea application lifecycle engine.
+   - `ui/`: Lip Gloss styled components (WhichKey popup, TreeView, StatusBar, HelpModal, TagModal, ConfigModal) and Bubble Tea application lifecycle engine.
 
 ---
 
@@ -20,7 +20,9 @@ Welcome to the HalpTask documentation!
 
 ```yaml
 auto_save: true
+check_updates: true
 data_file: ~/.config/halptask/data.txt
+default_item_type: bullet # "bullet" or "task"
 encrypted: false
 indent_spaces: 2
 leader_key: " "

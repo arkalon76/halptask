@@ -70,7 +70,23 @@ func TestMenuLayoutConsistency(t *testing.T) {
 		}
 	})
 
-	// 3. Test HelpModal
+	// 3. Test ConfigModal
+	t.Run("ConfigModal", func(t *testing.T) {
+		cfg := config.DefaultConfig()
+		cm := ui.NewConfigModal(cfg)
+		for _, w := range testWidths {
+			rendered := cm.Render(w, 24)
+			lines := strings.Split(rendered, "\n")
+			for idx, line := range lines {
+				visWidth := lipgloss.Width(line)
+				if visWidth > w {
+					t.Errorf("ConfigModal line %d exceeds width %d (got %d): %q", idx, w, visWidth, line)
+				}
+			}
+		}
+	})
+
+	// 4. Test HelpModal
 	t.Run("HelpModal", func(t *testing.T) {
 		help := ui.NewHelpModal()
 		for _, w := range testWidths {

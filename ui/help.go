@@ -87,6 +87,7 @@ func (h *HelpModal) Render(width, height int) string {
 			Items: [][2]string{
 				{"<space> b ...", "Bullet actions (new, edit, indent, move)"},
 				{"<space> t ...", "Task actions (toggle, done, in-progress)"},
+				{"<space> c ...", "Config dashboard & toggles (theme, auto-save, edit)"},
 				{"<space> z ...", "Fold actions (close, open, toggle all)"},
 				{"<space> e ...", "Encryption settings (toggle, passphrase)"},
 				{"<space> w / s", "Save data file to disk"},

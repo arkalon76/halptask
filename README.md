@@ -119,6 +119,12 @@ go build -o halptask .
 | `<space> t s` | Tasks | Mark Todo `[ ]` (Gray empty) |
 | `<space> t a` / `T` | Tasks | Manage task tags & labels |
 | `<space> t D` | Tasks | Toggle default creation type (`bullet` <-> `task`) |
+| `<space> c c` | Config | Open interactive Config Dashboard modal |
+| `<space> c a` | Config | Toggle Auto-Save |
+| `<space> c d` | Config | Toggle default creation item type (`bullet` <-> `task`) |
+| `<space> c t` | Config | Cycle visual theme palette |
+| `<space> c w` | Config | Toggle WhichKey popup menu |
+| `<space> c e` | Config | Open `config.yaml` in `$EDITOR` (auto-reloaded on exit) |
 | `<space> z c` | Folds | Close fold |
 | `<space> z o` | Folds | Open fold |
 | `<space> z a` | Folds | Toggle fold |
@@ -135,10 +141,16 @@ go build -o halptask .
 
 ---
 
-## 🔒 Configuration File (`~/.config/halptask/config.yaml`)
+## ⚙️ In-App & File Configuration (`~/.config/halptask/config.yaml`)
+
+HalpTask provides a **LazyVim-inspired configuration model**:
+1. **Interactive Config Dashboard (`<space> c c`)**: Browse categorized settings (`General`, `UI & Appearance`, `Storage & Security`), toggle booleans with `Space`/`Enter`, and cycle themes with instant disk persistence.
+2. **Quick Leader Toggles**: One-keypress toggles like `<space> c a` (Auto-Save), `<space> c d` (Default Item), and `<space> c t` (Cycle Theme).
+3. **External Editor Harmony (`<space> c e`)**: Launches your preferred `$EDITOR` on `~/.config/halptask/config.yaml`, auto-reloading changes on save.
 
 ```yaml
 auto_save: true
+check_updates: true
 data_file: ~/.config/halptask/data.txt
 default_item_type: bullet # "bullet" or "task"
 encrypted: false

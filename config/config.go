@@ -14,17 +14,28 @@ type TagConfig struct {
 }
 
 type Config struct {
-	AutoSave     bool        `yaml:"auto_save"`
-	CheckUpdates bool        `yaml:"check_updates"`
-	GithubRepo   string      `yaml:"github_repo"`
-	DataFile     string      `yaml:"data_file"`
-	Encrypted    bool        `yaml:"encrypted"`
-	IndentSpaces int         `yaml:"indent_spaces"`
-	LeaderKey    string      `yaml:"leader_key"`
+	AutoSave        bool        `yaml:"auto_save"`
+	CheckUpdates    bool        `yaml:"check_updates"`
+	GithubRepo      string      `yaml:"github_repo"`
+	DataFile        string      `yaml:"data_file"`
+	Encrypted       bool        `yaml:"encrypted"`
+	IndentSpaces    int         `yaml:"indent_spaces"`
+	LeaderKey       string      `yaml:"leader_key"`
 	ShowWhichKey    bool        `yaml:"show_which_key"`
 	Theme           string      `yaml:"theme"`
 	DefaultItemType string      `yaml:"default_item_type"` // "bullet" or "task"
 	Tags            []TagConfig `yaml:"tags,omitempty"`
+}
+
+var AvailableThemes = []string{"default", "tokyonight", "catppuccin", "dracula", "nord"}
+
+func CycleTheme(current string) string {
+	for i, t := range AvailableThemes {
+		if t == current {
+			return AvailableThemes[(i+1)%len(AvailableThemes)]
+		}
+	}
+	return AvailableThemes[0]
 }
 
 func GetDefaultTagConfigs() []TagConfig {

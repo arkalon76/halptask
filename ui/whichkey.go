@@ -76,6 +76,8 @@ func (wk *WhichKeyModel) GetOptions(allBindings []KeyBinding) (string, []WhichKe
 				groupName = "+bullets"
 			} else if nextKey == "t" {
 				groupName = "+tasks"
+			} else if nextKey == "c" {
+				groupName = "+config"
 			} else if nextKey == "z" {
 				groupName = "+folds"
 			} else if nextKey == "e" {

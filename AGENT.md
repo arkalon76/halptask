@@ -31,6 +31,8 @@ Welcome agent! This document provides an architectural overview, codebase walkth
 ├── ui/
 │   ├── app.go            # Primary Bubble Tea AppModel implementing tea.Model (Init, Update, View)
 │   ├── keys.go           # Central keybinding registry (GetAllKeyBindings)
+│   ├── configmodal.go    # Interactive configuration dashboard modal (<space> c c)
+│   ├── configmodal_test.go# Unit tests for ConfigModal
 │   ├── whichkey.go       # WhichKey popup renderer for multi-key leader sequences
 │   ├── whichkey_test.go  # Unit tests for WhichKey option lookup
 │   ├── quickhelp.go      # Persistent unintrusive key hints bar renderer
@@ -49,7 +51,7 @@ Welcome agent! This document provides an architectural overview, codebase walkth
 ### 1. Elm Architecture (Bubble Tea)
 HalpTask follows the standard Elm architecture via `tea.Model` in [`ui/app.go`](file:///Users/kenth/code/halptask/ui/app.go):
 - **Model**: `AppModel` holds the entire application state (Tree, CursorIndex, Mode, WhichKey, Search Query, Config, Storage).
-- **Update**: `Update(msg tea.Msg) (tea.Model, tea.Cmd)` handles keyboard inputs (`tea.KeyMsg`), terminal resize events (`tea.WindowSizeMsg`), and internal messages (`saveResultMsg`, `passphraseSubmitMsg`).
+- **Update**: `Update(msg tea.Msg) (tea.Model, tea.Cmd)` handles keyboard inputs (`tea.KeyMsg`), terminal resize events (`tea.WindowSizeMsg`), and internal messages (`saveResultMsg`, `passphraseSubmitMsg`, `configEditorClosedMsg`).
 - **View**: `View() string` renders the full TUI interface composed of Header, TreeView / Modal / WhichKey, and StatusBar.
 
 ### 2. Modes State Machine (`ui/app.go`)
@@ -59,6 +61,8 @@ The app operates in one of several modes:
 - `ModePassphrasePrompt`: Modal prompt for passphrase when opening or configuring an encrypted file.
 - `ModeSearch`: Real-time filtering search bar.
 - `ModeHelp`: Keymaps cheat sheet modal overlay.
+- `ModeTagPicker`: Interactive tag management modal overlay.
+- `ModeConfig`: Interactive configuration dashboard modal overlay.
 
 ### 3. Tree & Item Data Structure (`model/item.go`, `model/tree.go`)
 - Nodes are represented by `*model.Item`:

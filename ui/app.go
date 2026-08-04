@@ -2,6 +2,8 @@ package ui
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -11,6 +13,25 @@ import (
 	"github.com/kenth/halptask/model"
 	"github.com/kenth/halptask/updater"
 )
+
+type configEditorClosedMsg struct {
+	err error
+}
+
+func openConfigEditorCmd() tea.Cmd {
+	editor := os.Getenv("EDITOR")
+	if editor == "" {
+		editor = os.Getenv("VISUAL")
+	}
+	if editor == "" {
+		editor = "vim"
+	}
+	cfgPath := config.ConfigFilePath()
+	c := exec.Command(editor, cfgPath)
+	return tea.ExecProcess(c, func(err error) tea.Msg {
+		return configEditorClosedMsg{err: err}
+	})
+}
 
 type PromptType int
 
@@ -66,6 +87,7 @@ type AppModel struct {
 	StatusBar    StatusBar
 	HelpModal    HelpModal
 	TagModal     *TagModal
+	ConfigModal  *ConfigModal
 
 	Passphrase    string
 	StatusMsg     string
@@ -127,6 +149,7 @@ func InitialModel(cfg *config.Config, storage *model.Storage) (AppModel, tea.Cmd
 		StatusBar:       NewStatusBar(),
 		HelpModal:       NewHelpModal(),
 		TagModal:        NewTagModal(cfg.Tags),
+		ConfigModal:     NewConfigModal(cfg),
 		Width:           80,
 		Height:          24,
 		Version:         "0.0.3",
@@ -303,6 +326,20 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
+	case configEditorClosedMsg:
+		cfg, err := config.LoadConfig()
+		if err == nil {
+			m.Config = cfg
+			if m.ConfigModal != nil {
+				m.ConfigModal.Config = cfg
+				m.ConfigModal.RefreshItems()
+			}
+			m.StatusMsg = "Config reloaded from " + config.ConfigFilePath()
+		} else {
+			m.StatusMsg = "Error reloading config: " + err.Error()
+		}
+		return m, nil
+
 	case tea.WindowSizeMsg:
 		m.Width = msg.Width
 		m.Height = msg.Height
@@ -313,6 +350,10 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.StatusBar.Width = msg.Width
 		m.HelpModal.Width = msg.Width
 		m.HelpModal.Height = msg.Height
+		if m.ConfigModal != nil {
+			m.ConfigModal.Width = msg.Width
+			m.ConfigModal.Height = msg.Height
+		}
 		newModel = m
 
 	case tea.KeyMsg:
@@ -340,6 +381,22 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					_ = config.SaveConfig(m.Config)
 				}
 				_ = m.saveFile()
+			}
+			newModel, cmd = m, nil
+		case ModeConfig:
+			if m.ConfigModal == nil {
+				m.ConfigModal = NewConfigModal(m.Config)
+			}
+			closeModal, statusMsg, openEditor := m.ConfigModal.Update(msg)
+			if statusMsg != "" {
+				m.StatusMsg = statusMsg
+			}
+			if openEditor {
+				m.Mode = ModeNormal
+				return m, openConfigEditorCmd()
+			}
+			if closeModal {
+				m.Mode = ModeNormal
 			}
 			newModel, cmd = m, nil
 		}
@@ -391,7 +448,7 @@ func (m AppModel) updateNormal(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 
 		// Check double-character command matches (e.g. "gg", "dd", "zc", "zo", "za", "zM", "zR", "ww", "fc", "da", "ff", "oo", "oc")
-		if len(m.WhichKey.PrefixKeys) == 2 {
+		if len(m.WhichKey.PrefixKeys) == 2 && m.WhichKey.PrefixKeys[0] != " " {
 			seq := m.WhichKey.PrefixKeys[0] + m.WhichKey.PrefixKeys[1]
 			m.WhichKey.Active = false
 			m.WhichKey.PrefixKeys = nil
@@ -939,6 +996,50 @@ func (m *AppModel) tryExecuteKeyBinding(keys []string) (bool, tea.Cmd) {
 	case "  t D", "  b D", "  t m", "  b m": // Toggle default creation item type
 		m.toggleDefaultItemType()
 		return true, nil
+	case "  c c": // Open Config Dashboard
+		m.Mode = ModeConfig
+		if m.ConfigModal == nil {
+			m.ConfigModal = NewConfigModal(m.Config)
+		}
+		m.ConfigModal.RefreshItems()
+		return true, nil
+	case "  c a": // Toggle Auto-Save
+		if m.Config == nil {
+			m.Config = config.DefaultConfig()
+		}
+		m.Config.AutoSave = !m.Config.AutoSave
+		_ = config.SaveConfig(m.Config)
+		if m.Config.AutoSave {
+			m.StatusMsg = "Auto-Save ENABLED"
+		} else {
+			m.StatusMsg = "Auto-Save DISABLED"
+		}
+		return true, nil
+	case "  c d": // Toggle Default Item Type
+		m.toggleDefaultItemType()
+		return true, nil
+	case "  c t": // Cycle Visual Theme
+		if m.Config == nil {
+			m.Config = config.DefaultConfig()
+		}
+		m.Config.Theme = config.CycleTheme(m.Config.Theme)
+		_ = config.SaveConfig(m.Config)
+		m.StatusMsg = fmt.Sprintf("Theme changed to %s", m.Config.Theme)
+		return true, nil
+	case "  c w": // Toggle WhichKey Popup
+		if m.Config == nil {
+			m.Config = config.DefaultConfig()
+		}
+		m.Config.ShowWhichKey = !m.Config.ShowWhichKey
+		_ = config.SaveConfig(m.Config)
+		if m.Config.ShowWhichKey {
+			m.StatusMsg = "WhichKey Popup ENABLED"
+		} else {
+			m.StatusMsg = "WhichKey Popup DISABLED"
+		}
+		return true, nil
+	case "  c e": // Open Config File in $EDITOR
+		return true, openConfigEditorCmd()
 	case "  z c":
 		if m.SelectedID != "" {
 			m.Tree.Fold(m.SelectedID)
@@ -1178,6 +1279,13 @@ func (m AppModel) View() string {
 
 	if m.Mode == ModeTagPicker {
 		return lipgloss.Place(m.Width, m.Height, lipgloss.Center, lipgloss.Center, m.TagModal.Render(m.Width, m.Height))
+	}
+
+	if m.Mode == ModeConfig {
+		if m.ConfigModal == nil {
+			m.ConfigModal = NewConfigModal(m.Config)
+		}
+		return lipgloss.Place(m.Width, m.Height, lipgloss.Center, lipgloss.Center, m.ConfigModal.Render(m.Width, m.Height))
 	}
 
 	// Normal View Layout: Header / Tree View / Text Input / WhichKey / Status Bar

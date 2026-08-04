@@ -17,6 +17,7 @@ const (
 	ModePrompt
 	ModeHelp
 	ModeTagPicker
+	ModeConfig
 )
 
 func (m AppMode) String() string {
@@ -33,6 +34,8 @@ func (m AppMode) String() string {
 		return "HELP"
 	case ModeTagPicker:
 		return "TAGS"
+	case ModeConfig:
+		return "CONFIG"
 	default:
 		return "NORMAL"
 	}

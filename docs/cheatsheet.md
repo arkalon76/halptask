@@ -52,7 +52,18 @@ Pressing `<space>` or pressing the first key of any multi-character command (suc
 | `<space> z M` | Close All Folds | Folds every nested node across entire document |
 | `<space> z R` | Open All Folds | Unfolds every node across entire document |
 
-### 4. Encryption & System (`<space> e ...`, `<space> w`, `<space> q`)
+### 4. Configuration Menu (`<space> c ...`)
+
+| Shortcut | Command | Description |
+|---|---|---|
+| `<space> c c` | Config Dashboard | Open interactive, keyboard-navigable configuration modal |
+| `<space> c a` | Toggle Auto-Save | Turn background auto-save on/off |
+| `<space> c d` | Toggle Default Item | Switch default creation node type (`bullet` <-> `task`) |
+| `<space> c t` | Cycle Visual Theme | Cycle theme palette (`default`, `tokyonight`, `catppuccin`, `dracula`, `nord`) |
+| `<space> c w` | Toggle WhichKey | Show or hide Leader key WhichKey popup menu |
+| `<space> c e` | Edit Config File | Launch `$EDITOR` on `~/.config/halptask/config.yaml` with auto-reload |
+
+### 5. Encryption & System (`<space> e ...`, `<space> w`, `<space> q`)
 
 | Shortcut | Action | Description |
 |---|---|---|

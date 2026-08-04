@@ -372,3 +372,39 @@ func TestToggleDefaultItemType(t *testing.T) {
 	}
 }
 
+func TestLeaderConfigSequence(t *testing.T) {
+	cfg := config.DefaultConfig()
+	app := AppModel{
+		Config:      cfg,
+		Tree:        model.NewTree(),
+		Mode:        ModeNormal,
+		WhichKey:    NewWhichKeyModel(),
+		ConfigModal: NewConfigModal(cfg),
+		QuickHelp:   NewQuickHelp(),
+		TreeView:    NewTreeView(),
+		StatusBar:   NewStatusBar(),
+		HelpModal:   NewHelpModal(),
+	}
+
+	// 1. Press '<space>' -> WhichKey active
+	m, _ := app.updateNormal(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{' '}})
+	app = m.(AppModel)
+	if !app.WhichKey.Active {
+		t.Fatalf("expected WhichKey to be active after '<space>'")
+	}
+
+	// 2. Press 'c' -> WhichKey stays active with prefix [' ', 'c']
+	m, _ = app.updateNormal(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'c'}})
+	app = m.(AppModel)
+	if !app.WhichKey.Active {
+		t.Fatalf("expected WhichKey to stay active after '<space> c'")
+	}
+
+	// 3. Press 'c' -> Triggers Config Dashboard (ModeConfig)
+	m, _ = app.updateNormal(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'c'}})
+	app = m.(AppModel)
+	if app.Mode != ModeConfig {
+		t.Fatalf("expected mode to be ModeConfig after '<space> c c', got %v", app.Mode)
+	}
+}
+
