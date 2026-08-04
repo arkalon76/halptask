@@ -280,3 +280,95 @@ func TestTagPickerAutoSave(t *testing.T) {
 	}
 }
 
+func TestDefaultItemTypeCreation(t *testing.T) {
+	cfg := config.DefaultConfig()
+	cfg.DefaultItemType = "task" // Set default creation to task
+
+	tree := model.NewTree()
+	item := tree.InsertBelow("", "Root Bullet")
+
+	app := AppModel{
+		Config:    cfg,
+		Tree:      tree,
+		Mode:      ModeNormal,
+		TextInput: textinput.New(),
+		WhichKey:  NewWhichKeyModel(),
+		QuickHelp: NewQuickHelp(),
+		TreeView:  NewTreeView(),
+		StatusBar: NewStatusBar(),
+		HelpModal: NewHelpModal(),
+	}
+	app.ensureValidCursor()
+	app.SelectedID = item.ID
+
+	// Create new item below using 'oo'
+	m, _ := app.updateNormal(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'o'}})
+	app = m.(AppModel)
+	m, _ = app.updateNormal(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'o'}})
+	app = m.(AppModel)
+
+	visible := app.getVisibleItems()
+	if len(visible) != 2 {
+		t.Fatalf("expected 2 visible items, got %d", len(visible))
+	}
+
+	createdItem := visible[1].Item
+	if !createdItem.IsTask || createdItem.Status != model.StatusTodo {
+		t.Fatalf("expected newly created item to be a Todo task, got isTask=%v status=%s", createdItem.IsTask, createdItem.Status)
+	}
+
+	// Switch default item type back to "bullet"
+	app.Config.DefaultItemType = "bullet"
+	app.Mode = ModeNormal
+
+	// Create new item below using 'oo'
+	m, _ = app.updateNormal(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'o'}})
+	app = m.(AppModel)
+	m, _ = app.updateNormal(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'o'}})
+	app = m.(AppModel)
+
+	visible = app.getVisibleItems()
+	if len(visible) != 3 {
+		t.Fatalf("expected 3 visible items, got %d", len(visible))
+	}
+
+	createdBullet := visible[2].Item
+	if createdBullet.IsTask {
+		t.Fatalf("expected newly created item to be a bullet point (isTask=false), got isTask=true")
+	}
+}
+
+func TestToggleDefaultItemType(t *testing.T) {
+	cfg := config.DefaultConfig()
+	cfg.DefaultItemType = "bullet"
+
+	app := AppModel{
+		Config:    cfg,
+		Tree:      model.NewTree(),
+		Mode:      ModeNormal,
+		WhichKey:  NewWhichKeyModel(),
+		QuickHelp: NewQuickHelp(),
+		TreeView:  NewTreeView(),
+		StatusBar: NewStatusBar(),
+		HelpModal: NewHelpModal(),
+	}
+
+	// Toggle via Leader key '<space> t D'
+	app.tryExecuteKeyBinding([]string{" ", "t", "D"})
+	if app.Config.DefaultItemType != "task" {
+		t.Fatalf("expected DefaultItemType to be 'task' after toggle, got %s", app.Config.DefaultItemType)
+	}
+	if !strings.Contains(app.StatusMsg, "Task") {
+		t.Fatalf("expected status message to mention Task, got %q", app.StatusMsg)
+	}
+
+	// Toggle again
+	app.tryExecuteKeyBinding([]string{" ", "t", "D"})
+	if app.Config.DefaultItemType != "bullet" {
+		t.Fatalf("expected DefaultItemType to be 'bullet' after second toggle, got %s", app.Config.DefaultItemType)
+	}
+	if !strings.Contains(app.StatusMsg, "Bullet") {
+		t.Fatalf("expected status message to mention Bullet, got %q", app.StatusMsg)
+	}
+}
+

@@ -21,9 +21,10 @@ type Config struct {
 	Encrypted    bool        `yaml:"encrypted"`
 	IndentSpaces int         `yaml:"indent_spaces"`
 	LeaderKey    string      `yaml:"leader_key"`
-	ShowWhichKey bool        `yaml:"show_which_key"`
-	Theme        string      `yaml:"theme"`
-	Tags         []TagConfig `yaml:"tags,omitempty"`
+	ShowWhichKey    bool        `yaml:"show_which_key"`
+	Theme           string      `yaml:"theme"`
+	DefaultItemType string      `yaml:"default_item_type"` // "bullet" or "task"
+	Tags            []TagConfig `yaml:"tags,omitempty"`
 }
 
 func GetDefaultTagConfigs() []TagConfig {
@@ -46,16 +47,17 @@ func DefaultConfig() *Config {
 	}
 	defaultData := filepath.Join(home, ".config", "halptask", "data.txt")
 	return &Config{
-		AutoSave:     true,
-		CheckUpdates: true,
-		GithubRepo:   "arkalon76/halptask",
-		DataFile:     defaultData,
-		Encrypted:    false,
-		IndentSpaces: 2,
-		LeaderKey:    " ",
-		ShowWhichKey: true,
-		Theme:        "default",
-		Tags:         GetDefaultTagConfigs(),
+		AutoSave:        true,
+		CheckUpdates:    true,
+		GithubRepo:      "arkalon76/halptask",
+		DataFile:        defaultData,
+		Encrypted:       false,
+		IndentSpaces:    2,
+		LeaderKey:       " ",
+		ShowWhichKey:    true,
+		Theme:           "default",
+		DefaultItemType: "bullet",
+		Tags:            GetDefaultTagConfigs(),
 	}
 }
 
@@ -100,6 +102,16 @@ func LoadConfig() (*Config, error) {
 	}
 	if cfg.GithubRepo == "" {
 		cfg.GithubRepo = "arkalon76/halptask"
+	}
+	if cfg.DefaultItemType == "" {
+		cfg.DefaultItemType = "bullet"
+	} else {
+		if cfg.DefaultItemType == "bulletpoint" || cfg.DefaultItemType == "bullet_point" {
+			cfg.DefaultItemType = "bullet"
+		}
+		if cfg.DefaultItemType != "bullet" && cfg.DefaultItemType != "task" {
+			cfg.DefaultItemType = "bullet"
+		}
 	}
 	if len(cfg.Tags) == 0 {
 		cfg.Tags = GetDefaultTagConfigs()

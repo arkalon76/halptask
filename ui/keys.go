@@ -21,6 +21,7 @@ func GetAllKeyBindings() []KeyBinding {
 		{Keys: []string{" ", "b", "j"}, KeyString: "j", Label: "move bullet down", Category: "Bullets"},
 		{Keys: []string{" ", "b", "k"}, KeyString: "k", Label: "move bullet up", Category: "Bullets"},
 		{Keys: []string{" ", "b", "t"}, KeyString: "t", Label: "toggle task status", Category: "Bullets"},
+		{Keys: []string{" ", "b", "D"}, KeyString: "D", Label: "toggle default type", Category: "Bullets"},
 
 		// Leader Task operations
 		{Keys: []string{" ", "t", "t"}, KeyString: "t", Label: "toggle bullet <-> task", Category: "Tasks"},
@@ -29,6 +30,7 @@ func GetAllKeyBindings() []KeyBinding {
 		{Keys: []string{" ", "t", "p"}, KeyString: "p", Label: "mark in-progress [~]", Category: "Tasks"},
 		{Keys: []string{" ", "t", "s"}, KeyString: "s", Label: "mark todo [ ]", Category: "Tasks"},
 		{Keys: []string{" ", "t", "a"}, KeyString: "a", Label: "manage tags / labels", Category: "Tasks"},
+		{Keys: []string{" ", "t", "D"}, KeyString: "D", Label: "toggle default type", Category: "Tasks"},
 
 		// Leader Fold operations
 		{Keys: []string{" ", "z", "c"}, KeyString: "c", Label: "close fold", Category: "Folds"},

@@ -93,7 +93,11 @@ func (m *AppModel) getVisibleItems() []model.VisibleItem {
 func InitialModel(cfg *config.Config, storage *model.Storage) (AppModel, tea.Cmd) {
 	ti := textinput.New()
 	ti.Prompt = "✏️  "
-	ti.Placeholder = "Enter bullet text..."
+	if cfg != nil && cfg.DefaultItemType == "task" {
+		ti.Placeholder = "Enter task text..."
+	} else {
+		ti.Placeholder = "Enter bullet text..."
+	}
 	ti.CharLimit = 256
 
 	si := textinput.New()
@@ -206,6 +210,61 @@ func (m *AppModel) ensureValidCursor() {
 	} else if m.CursorIndex >= m.ScrollOffset+maxVisibleLines {
 		m.ScrollOffset = m.CursorIndex - maxVisibleLines + 1
 	}
+}
+
+func (m *AppModel) isDefaultTask() bool {
+	if m.Config != nil && strings.ToLower(m.Config.DefaultItemType) == "task" {
+		return true
+	}
+	return false
+}
+
+func (m *AppModel) applyDefaultItemType(item *model.Item) {
+	if item == nil {
+		return
+	}
+	if m.isDefaultTask() {
+		item.IsTask = true
+		item.Status = model.StatusTodo
+	} else {
+		item.IsTask = false
+		item.Status = model.StatusNone
+	}
+}
+
+func (m *AppModel) toggleDefaultItemType() {
+	if m.Config == nil {
+		m.Config = config.DefaultConfig()
+	}
+	if m.Config.DefaultItemType == "task" {
+		m.Config.DefaultItemType = "bullet"
+		m.StatusMsg = "Default item type: Bullet •"
+	} else {
+		m.Config.DefaultItemType = "task"
+		m.StatusMsg = "Default item type: Task [ ]"
+	}
+	_ = config.SaveConfig(m.Config)
+}
+
+func (m *AppModel) prepareNewItemInsert(newItem *model.Item) {
+	m.applyDefaultItemType(newItem)
+	m.ensureValidCursor()
+	visible := m.getVisibleItems()
+	for i, v := range visible {
+		if v.Item.ID == newItem.ID {
+			m.CursorIndex = i
+			break
+		}
+	}
+	m.ensureValidCursor()
+	m.Mode = ModeInsert
+	if m.isDefaultTask() {
+		m.TextInput.Placeholder = "Enter task text..."
+	} else {
+		m.TextInput.Placeholder = "Enter bullet text..."
+	}
+	m.TextInput.SetValue("")
+	m.TextInput.Focus()
 }
 
 func (m AppModel) Init() tea.Cmd {
@@ -422,34 +481,12 @@ func (m AppModel) updateNormal(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			case "oo":
 				m.pushUndo()
 				newItem := m.Tree.InsertBelow(m.SelectedID, "")
-				m.ensureValidCursor()
-				visible := m.getVisibleItems()
-				for i, v := range visible {
-					if v.Item.ID == newItem.ID {
-						m.CursorIndex = i
-						break
-					}
-				}
-				m.ensureValidCursor()
-				m.Mode = ModeInsert
-				m.TextInput.SetValue("")
-				m.TextInput.Focus()
+				m.prepareNewItemInsert(newItem)
 				return m, textinput.Blink
 			case "oc":
 				m.pushUndo()
 				newItem := m.Tree.AddChild(m.SelectedID, "")
-				m.ensureValidCursor()
-				visible := m.getVisibleItems()
-				for i, v := range visible {
-					if v.Item.ID == newItem.ID {
-						m.CursorIndex = i
-						break
-					}
-				}
-				m.ensureValidCursor()
-				m.Mode = ModeInsert
-				m.TextInput.SetValue("")
-				m.TextInput.Focus()
+				m.prepareNewItemInsert(newItem)
 				return m, textinput.Blink
 			}
 		}
@@ -563,35 +600,13 @@ func (m AppModel) updateNormal(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "oo":
 		m.pushUndo()
 		newItem := m.Tree.InsertBelow(m.SelectedID, "")
-		m.ensureValidCursor()
-		visible := m.getVisibleItems()
-		for i, v := range visible {
-			if v.Item.ID == newItem.ID {
-				m.CursorIndex = i
-				break
-			}
-		}
-		m.ensureValidCursor()
-		m.Mode = ModeInsert
-		m.TextInput.SetValue("")
-		m.TextInput.Focus()
+		m.prepareNewItemInsert(newItem)
 		m.KeyBuffer = ""
 		return m, textinput.Blink
 	case "oc":
 		m.pushUndo()
 		newItem := m.Tree.AddChild(m.SelectedID, "")
-		m.ensureValidCursor()
-		visible := m.getVisibleItems()
-		for i, v := range visible {
-			if v.Item.ID == newItem.ID {
-				m.CursorIndex = i
-				break
-			}
-		}
-		m.ensureValidCursor()
-		m.Mode = ModeInsert
-		m.TextInput.SetValue("")
-		m.TextInput.Focus()
+		m.prepareNewItemInsert(newItem)
 		m.KeyBuffer = ""
 		return m, textinput.Blink
 	}
@@ -654,18 +669,7 @@ func (m AppModel) updateNormal(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "O":
 		m.pushUndo()
 		newItem := m.Tree.InsertAbove(m.SelectedID, "")
-		m.ensureValidCursor()
-		visible := m.getVisibleItems()
-		for i, v := range visible {
-			if v.Item.ID == newItem.ID {
-				m.CursorIndex = i
-				break
-			}
-		}
-		m.ensureValidCursor()
-		m.Mode = ModeInsert
-		m.TextInput.SetValue("")
-		m.TextInput.Focus()
+		m.prepareNewItemInsert(newItem)
 		m.KeyBuffer = ""
 		return m, textinput.Blink
 	case "enter":
@@ -680,6 +684,11 @@ func (m AppModel) updateNormal(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if item != nil {
 				m.pushUndo()
 				m.Mode = ModeInsert
+				if item.IsTask {
+					m.TextInput.Placeholder = "Enter task text..."
+				} else {
+					m.TextInput.Placeholder = "Enter bullet text..."
+				}
 				m.TextInput.SetValue(item.Text)
 				m.TextInput.Focus()
 				m.KeyBuffer = ""
@@ -693,6 +702,11 @@ func (m AppModel) updateNormal(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if item != nil {
 				m.pushUndo()
 				m.Mode = ModeInsert
+				if item.IsTask {
+					m.TextInput.Placeholder = "Enter task text..."
+				} else {
+					m.TextInput.Placeholder = "Enter bullet text..."
+				}
 				m.TextInput.SetValue("")
 				m.TextInput.Focus()
 				m.KeyBuffer = ""
@@ -797,51 +811,18 @@ func (m *AppModel) tryExecuteKeyBinding(keys []string) (bool, tea.Cmd) {
 	case "  b n": // Space > Bullets > New below
 		m.pushUndo()
 		newItem := m.Tree.InsertBelow(m.SelectedID, "")
-		m.ensureValidCursor()
-		visible := m.getVisibleItems()
-		for i, v := range visible {
-			if v.Item.ID == newItem.ID {
-				m.CursorIndex = i
-				break
-			}
-		}
-		m.ensureValidCursor()
-		m.Mode = ModeInsert
-		m.TextInput.SetValue("")
-		m.TextInput.Focus()
+		m.prepareNewItemInsert(newItem)
 		return true, nil
 	case "  b N": // Space > Bullets > New above
 		m.pushUndo()
 		newItem := m.Tree.InsertAbove(m.SelectedID, "")
-		m.ensureValidCursor()
-		visible := m.getVisibleItems()
-		for i, v := range visible {
-			if v.Item.ID == newItem.ID {
-				m.CursorIndex = i
-				break
-			}
-		}
-		m.ensureValidCursor()
-		m.Mode = ModeInsert
-		m.TextInput.SetValue("")
-		m.TextInput.Focus()
+		m.prepareNewItemInsert(newItem)
 		return true, nil
 	case "  b c": // Space > Bullets > Add child
 		if m.SelectedID != "" {
 			m.pushUndo()
 			newItem := m.Tree.AddChild(m.SelectedID, "")
-			m.ensureValidCursor()
-			visible := m.getVisibleItems()
-			for i, v := range visible {
-				if v.Item.ID == newItem.ID {
-					m.CursorIndex = i
-					break
-				}
-			}
-			m.ensureValidCursor()
-			m.Mode = ModeInsert
-			m.TextInput.SetValue("")
-			m.TextInput.Focus()
+			m.prepareNewItemInsert(newItem)
 			return true, nil
 		}
 	case "  b e": // Space > Bullets > Edit
@@ -850,6 +831,11 @@ func (m *AppModel) tryExecuteKeyBinding(keys []string) (bool, tea.Cmd) {
 			if item != nil {
 				m.pushUndo()
 				m.Mode = ModeInsert
+				if item.IsTask {
+					m.TextInput.Placeholder = "Enter task text..."
+				} else {
+					m.TextInput.Placeholder = "Enter bullet text..."
+				}
 				m.TextInput.SetValue(item.Text)
 				m.TextInput.Focus()
 				return true, nil
@@ -950,6 +936,9 @@ func (m *AppModel) tryExecuteKeyBinding(keys []string) (bool, tea.Cmd) {
 				return true, nil
 			}
 		}
+	case "  t D", "  b D", "  t m", "  b m": // Toggle default creation item type
+		m.toggleDefaultItemType()
+		return true, nil
 	case "  z c":
 		if m.SelectedID != "" {
 			m.Tree.Fold(m.SelectedID)

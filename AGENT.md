@@ -22,7 +22,7 @@ Welcome agent! This document provides an architectural overview, codebase walkth
 .
 ├── main.go               # CLI entrypoint, flag parsing, Bubble Tea program launcher
 ├── config/
-│   └── config.go         # YAML config file loader/saver (~/.config/halptask/config.yaml)
+│   └── config.go         # YAML config file loader/saver (~/.config/halptask/config.yaml, default_item_type: "bullet"|"task")
 ├── model/
 │   ├── item.go           # Item struct (nodes), TaskStatus enum, VisibleItem flat projection
 │   ├── tree.go           # Tree data structure, tree mutations, visibility filtering, undo/redo stack

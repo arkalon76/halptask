@@ -40,6 +40,7 @@ Pressing `<space>` or pressing the first key of any multi-character command (suc
 | `<space> t p` | `[~]` | Mark as **In Progress** (Orange `~` indicator) |
 | `<space> t d` | `[x]` | Mark as **Done** (Green `X`, faint strikethrough text) |
 | `<space> t a` | `🏷️` | Open **Tag / Label Manager** overlay |
+| `<space> t D` | `⚙️` | Toggle default item creation type (`bullet` <-> `task`) |
 
 ### 3. Fold Menu (`<space> z ...`)
 

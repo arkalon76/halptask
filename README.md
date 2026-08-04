@@ -118,6 +118,7 @@ go build -o halptask .
 | `<space> t p` | Tasks | Mark In Progress `[~]` (Orange ~) |
 | `<space> t s` | Tasks | Mark Todo `[ ]` (Gray empty) |
 | `<space> t a` / `T` | Tasks | Manage task tags & labels |
+| `<space> t D` | Tasks | Toggle default creation type (`bullet` <-> `task`) |
 | `<space> z c` | Folds | Close fold |
 | `<space> z o` | Folds | Open fold |
 | `<space> z a` | Folds | Toggle fold |
@@ -139,6 +140,7 @@ go build -o halptask .
 ```yaml
 auto_save: true
 data_file: ~/.config/halptask/data.txt
+default_item_type: bullet # "bullet" or "task"
 encrypted: false
 indent_spaces: 2
 leader_key: " "
