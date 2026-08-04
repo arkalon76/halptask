@@ -1,10 +1,11 @@
 # HalpTask 🚀
 
-A high-performance, keyboard-driven Terminal User Interface (TUI) bullet point and task manager written in **Go** and **Bubble Tea**, using well-known shortcuts.
+> A high-performance, keyboard-driven Terminal User Interface (TUI) bullet point outliner & task manager for Vim users. Written in **Go** and **Bubble Tea**, storing tasks in human-readable Markdown files with AES-256 encryption support.
 
 ![HalpTask TUI](https://img.shields.io/badge/TUI-Bubble%20Tea-purple)
 ![Go Version](https://img.shields.io/badge/Go-1.22%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
+![Category](https://img.shields.io/badge/category-terminal--todo--app-violet)
 
 ---
 

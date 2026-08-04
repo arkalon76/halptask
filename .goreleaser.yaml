@@ -60,6 +60,18 @@ nfpms:
       {{- else if eq .Arch "arm64" }}arm64
       {{- else }}{{ .Arch }}{{ end }}
 
+brews:
+  - name: halptask
+    repository:
+      owner: arkalon76
+      name: homebrew-tap
+      token: "{{ .GITHUB_TOKEN }}"
+    homepage: "https://github.com/arkalon76/halptask"
+    description: "A high-performance keyboard-driven TUI bullet point outliner and task manager"
+    license: "MIT"
+    install: |
+      bin.install "halptask"
+
 
 
 changelog:
