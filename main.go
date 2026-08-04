@@ -12,7 +12,7 @@ import (
 	"github.com/kenth/halptask/updater"
 )
 
-const Version = "0.0.3"
+const Version = "0.0.4"
 
 func main() {
 	filePathFlag := flag.String("f", "", "Path to halptask data file")
