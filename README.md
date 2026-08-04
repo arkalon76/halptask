@@ -8,6 +8,16 @@ A high-performance, keyboard-driven Terminal User Interface (TUI) bullet point a
 
 ---
 
+## ⚡ Quick Install (macOS & Linux)
+
+Install the latest `halptask` binary automatically for your OS and architecture:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/arkalon76/halptask/main/scripts/install.sh | bash
+```
+
+---
+
 ## 📚 Documentation & Cheatsheet
 
 Detailed documentation and guides are available in the [`docs/`](docs/index.md) folder:
@@ -45,27 +55,19 @@ Detailed documentation and guides are available in the [`docs/`](docs/index.md) 
 
 ---
 
-## ⚡ Installation & Quick Start
+## 📦 Alternative Installation Methods
 
-### 🚀 One-Line Installer (macOS & Linux)
+### Standalone Binary Download
 
-Install the latest pre-compiled binary instantly without manually unpacking archives:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/kenth/halptask/main/scripts/install.sh | bash
-```
-
-### 📦 Standalone Binary Download
-
-Download direct executable binaries for your OS and Architecture directly from [GitHub Releases](https://github.com/kenth/halptask/releases/latest):
+Download direct executable binaries for your OS and Architecture directly from [GitHub Releases](https://github.com/arkalon76/halptask/releases/latest):
 
 ```bash
 # macOS (Apple Silicon arm64)
-curl -LO https://github.com/kenth/halptask/releases/latest/download/halptask_Darwin_arm64
+curl -LO https://github.com/arkalon76/halptask/releases/latest/download/halptask_Darwin_arm64
 chmod +x halptask_Darwin_arm64 && sudo mv halptask_Darwin_arm64 /usr/local/bin/halptask
 
 # Linux (x86_64)
-curl -LO https://github.com/kenth/halptask/releases/latest/download/halptask_Linux_x86_64
+curl -LO https://github.com/arkalon76/halptask/releases/latest/download/halptask_Linux_x86_64
 chmod +x halptask_Linux_x86_64 && sudo mv halptask_Linux_x86_64 /usr/local/bin/halptask
 ```
 
@@ -78,10 +80,10 @@ chmod +x halptask_Linux_x86_64 && sudo mv halptask_Linux_x86_64 /usr/local/bin/h
 
 ```bash
 # Using Go
-go install github.com/kenth/halptask@latest
+go install github.com/arkalon76/halptask@latest
 
 # Or clone and build manually
-git clone https://github.com/kenth/halptask.git
+git clone https://github.com/arkalon76/halptask.git
 cd halptask
 go build -o halptask .
 ./halptask
