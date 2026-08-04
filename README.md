@@ -8,12 +8,21 @@ A high-performance, keyboard-driven Terminal User Interface (TUI) bullet point a
 
 ---
 
-## ⚡ Quick Install (macOS & Linux)
+## ⚡ Quick Install (macOS, Linux & Windows)
+
+> [!WARNING]
+> ⚠️ **SECURITY WARNING**: Never trust install scripts blindly! Always inspect the source code before running remote scripts piped into your shell. You can inspect the installer source code at [`scripts/install.sh`](scripts/install.sh) (or [`scripts/install.ps1`](scripts/install.ps1) for PowerShell).
 
 Install the latest `halptask` binary automatically for your OS and architecture:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/arkalon76/halptask/main/scripts/install.sh | bash
+```
+
+*For native Windows PowerShell:*
+
+```powershell
+irm https://raw.githubusercontent.com/arkalon76/halptask/main/scripts/install.ps1 | iex
 ```
 
 ---
@@ -49,7 +58,7 @@ Detailed documentation and guides are available in the [`docs/`](docs/index.md) 
   - Data stored in clean human-readable Markdown format by default (`~/.config/halptask/data.txt`).
   - **AES-256-GCM + PBKDF2** encryption mode for secure task storage.
 - **Cross Platform Support**:
-  - Binaries built for **macOS** and **Linux** (`amd64` and `arm64`).
+  - Binaries built for **macOS**, **Linux**, and **Windows** (`amd64` and `arm64`).
 - **Customizable Configuration**:
   - Configured via `~/.config/halptask/config.yaml`.
 
@@ -69,6 +78,9 @@ chmod +x halptask_Darwin_arm64 && sudo mv halptask_Darwin_arm64 /usr/local/bin/h
 # Linux (x86_64)
 curl -LO https://github.com/arkalon76/halptask/releases/latest/download/halptask_Linux_x86_64
 chmod +x halptask_Linux_x86_64 && sudo mv halptask_Linux_x86_64 /usr/local/bin/halptask
+
+# Windows (x86_64)
+curl -LO https://github.com/arkalon76/halptask/releases/latest/download/halptask_Windows_x86_64.exe
 ```
 
 ### 🐧 Linux Packages (.deb / .rpm)

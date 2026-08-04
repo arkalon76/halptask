@@ -34,7 +34,8 @@ Releases are triggered automatically whenever you push a Git tag to the reposito
 ## Configuration Details
 
 - **`.goreleaser.yaml`**: Configured with GoReleaser v2 specifications. Generates both raw standalone binary assets (`formats: [binary]`) and compressed archives (`formats: [tar.gz, zip]`), as well as Debian (`.deb`) and RedHat (`.rpm`) packages (`nfpms`).
-- **`scripts/install.sh`**: Portable shell installer script that auto-detects OS/architecture, retrieves the raw binary asset from GitHub Releases, and places it into `/usr/local/bin` (or `~/.local/bin`).
+- **`scripts/install.sh`**: Portable shell installer script that auto-detects OS (Linux, macOS, Windows/Git Bash), architecture, retrieves the raw binary asset from GitHub Releases, and places it into the target binary directory.
+- **`scripts/install.ps1`**: PowerShell installer script for native Windows environments.
 - **`.github/workflows/release.yml`**: GitHub Actions workflow that executes GoReleaser on new version tag pushes.
 
 ## Testing Locally (Optional)
