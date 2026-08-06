@@ -102,7 +102,6 @@ func (t *Tree) DeleteCompleted() int {
 	return count
 }
 
-
 func (t *Tree) FindItem(id string) *Item {
 	var found *Item
 	var recurse func(items []*Item)
@@ -737,4 +736,3 @@ func (t *Tree) GetInProgressTasks() []TaskWithContext {
 	recurse(t.Roots)
 	return result
 }
-

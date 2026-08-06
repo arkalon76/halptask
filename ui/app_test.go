@@ -639,5 +639,3 @@ func TestTitleBarVersionAndSpace(t *testing.T) {
 		t.Fatalf("expected title bar to omit update version 'v0.0.6' when space is insufficient, got %q", renderedNarrow)
 	}
 }
-
-
